@@ -12,3 +12,4 @@ aiohttp
 python-cfonts
 flask
 gunicorn
+rich          ← নতুন লাইন যোগ করুন
