@@ -3,6 +3,7 @@
 # MAHIR SQUAD BOT — GROUP CREATE + WORLD RECRUIT + TEAM CHAT + AUTO BUNDLE
 # ✅ AUTO RECREATE EVERY 5 SECONDS (EXIT → CREATE → RECRUIT)
 # ✅ ALL ACCOUNTS LAUNCHED CONCURRENTLY (no blocking, auto-retry)
+# ✅ WEB ACCOUNT MANAGER (TXT-based: add / edit / upload / download)
 
 import subprocess
 import sys
@@ -76,6 +77,7 @@ active_lock = threading.Lock()
 login_url, ob, version = "https://loginbp.ppmainecoonghj.com/", "OB55", "1.132.1"
 TIMEOUT = aiohttp.ClientTimeout(total=30)
 WEB_CONFIG_FILE = "web_config.json"
+ACCOUNTS_FILE = "accounts.txt"
 
 # ========== SIGNAL SYSTEM ==========
 signal_lock = threading.Lock()
@@ -331,6 +333,69 @@ def save_web_config():
         return True
     except Exception as e:
         console.print(f"[bold red]Config Save Error: {e}[/bold red]")
+        return False
+
+# ================================================================
+#   ✅ ACCOUNT STORAGE (TXT based)
+# ================================================================
+def load_accounts(file_path=ACCOUNTS_FILE):
+    """
+    ✅ accounts.txt থেকে সব account load করে।
+    Format: প্রতি লাইনে  uid:password  অথবা  uid|password
+    ✅ Blank line এবং # comment skip করে।
+    ✅ File না থাকলে auto create করে।
+    """
+    try:
+        if not os.path.exists(file_path):
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write("")
+            console.print(f"[bold yellow]📁 {file_path} তৈরি করা হয়েছে (খালি)[/bold yellow]")
+            return {}
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        accounts = {}
+        for raw_line in lines:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            sep = ":" if ":" in line else ("|" if "|" in line else None)
+            if sep is None:
+                continue
+            parts = line.split(sep, 1)
+            if len(parts) != 2:
+                continue
+            uid = parts[0].strip()
+            pwd = parts[1].strip()
+            if uid.isdigit() and pwd:
+                accounts[uid] = pwd
+        return accounts
+    except Exception as e:
+        console.print(f"[bold red]Acc Load Error: {e}[/bold red]")
+        return {}
+
+
+def save_accounts(accounts_dict, file_path=ACCOUNTS_FILE):
+    """✅ dict → txt file"""
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            for uid, pwd in accounts_dict.items():
+                f.write(f"{uid}:{pwd}\n")
+        return True
+    except Exception as e:
+        console.print(f"[bold red]Acc Save Error: {e}[/bold red]")
+        return False
+
+
+def save_accounts_raw(text, file_path=ACCOUNTS_FILE):
+    """✅ Raw text → txt file (web textarea/upload থেকে)"""
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(text)
+        return True
+    except Exception as e:
+        console.print(f"[bold red]Acc Save Error: {e}[/bold red]")
         return False
 
 # ================================================================
@@ -1033,62 +1098,20 @@ def create_auth_token_online(account_uid, token, kts, key, iv):
         print(f"❌ ONLINE AUTH: {e}"); return None
 
 # ================================================================
-#   ✅ ACCOUNT LOADER (improved)
-# ================================================================
-def load_accounts(file_path="accs.json"):
-    """
-    ✅ accs.json পড়ে সব valid account return করে।
-    ✅ file না থাকলে auto create করে।
-    ✅ invalid/ভাঙা JSON হলে crash করে না।
-    """
-    try:
-        if not os.path.exists(file_path):
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("{}")
-            console.print(f"[bold yellow]📁 {file_path} তৈরি করা হয়েছে (খালি)[/bold yellow]")
-            return {}
-
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read().strip()
-
-        if not content:
-            return {}
-
-        data = json.loads(content)
-
-        if not isinstance(data, dict):
-            console.print("[bold red]⚠️ accs.json এর ফরম্যাট ভুল (dict হতে হবে)[/bold red]")
-            return {}
-
-        valid = {}
-        for k, v in data.items():
-            ks, vs = str(k).strip(), str(v).strip()
-            if ks.isdigit() and vs:
-                valid[ks] = vs
-        return valid
-
-    except json.JSONDecodeError as e:
-        console.print(f"[bold red]❌ accs.json JSON ভাঙা: {e}[/bold red]")
-        return {}
-    except Exception as e:
-        console.print(f"[bold red]Acc Load Error: {e}[/bold red]")
-        return {}
-
-
-# ================================================================
 #   ✅ BATCH ACCOUNT LOADER — সব account একসাথে চালু (concurrent + auto retry)
 # ================================================================
 async def batch_account_loader():
     """
-    ✅ সব account একসাথে চালু করে (কোনো sequential wait নেই)।
-    ✅ কোনো account fail করলে ২ সেকেন্ডের মধ্যে auto retry।
-    ✅ request/recruit/bundle চলার সময়ও বাকি account launch হয়।
-    ✅ accs.json এ নতুন UID add করলে সাথে সাথে pick up হয় (restart ছাড়াই)।
-    ✅ accs.json থেকে UID মুছলে সেই bot বন্ধ হয়।
+    ✅ সব account একসাথে concurrent launch।
+    ✅ Password change detect → bot restart।
+    ✅ Deleted UID → bot বন্ধ।
+    ✅ New UID → সাথে সাথে launch।
+    ✅ Crash → auto retry।
     """
     global total_accounts
     active_bots = {}      # uid -> SquadBot instance
     bot_tasks   = {}      # uid -> asyncio.Task
+    last_passwords = {}   # uid -> password (change detection)
 
     console.print("[bold cyan]🚀 Batch Account Loader চালু হয়েছে...[/bold cyan]")
 
@@ -1097,79 +1120,70 @@ async def batch_account_loader():
             accounts = load_accounts()
             total_accounts = len(accounts)
 
-            # ── ১. নতুন account গুলো launch করা ──
+            # ── Password changed → restart ──
+            for uid, pwd in accounts.items():
+                if uid in last_passwords and last_passwords[uid] != pwd:
+                    console.print(f"[bold yellow]🔑 UID {uid} password changed → restarting bot[/bold yellow]")
+                    if uid in active_bots:
+                        try: active_bots[uid].is_running = False
+                        except Exception: pass
+                        del active_bots[uid]
+                    if uid in bot_tasks:
+                        if not bot_tasks[uid].done(): bot_tasks[uid].cancel()
+                        del bot_tasks[uid]
+                last_passwords[uid] = pwd
+
+            # ── New account launch ──
             for uid, pwd in accounts.items():
                 with running_bots_lock:
                     running_bots.add(uid)
 
-                # আগের task চলমান থাকলে skip
                 if uid in bot_tasks and not bot_tasks[uid].done():
                     continue
 
-                # পুরনো মৃত task/instance clean up
-                if uid in bot_tasks:
-                    del bot_tasks[uid]
+                if uid in bot_tasks: del bot_tasks[uid]
                 if uid in active_bots:
-                    try:
-                        active_bots[uid].is_running = False
-                    except Exception:
-                        pass
+                    try: active_bots[uid].is_running = False
+                    except Exception: pass
                     del active_bots[uid]
 
-                bot = SquadBot(uid=uid, password=pwd, server='bd',
-                               index=len(bot_tasks) + 1)
+                bot = SquadBot(uid=uid, password=pwd, server='bd', index=len(bot_tasks) + 1)
                 active_bots[uid] = bot
-
-                # ✅ সরাসরি keep_online_forever — কোনো 20s wait নেই, কোনো cancel নেই
                 task = asyncio.create_task(bot.keep_online_forever())
                 bot_tasks[uid] = task
 
                 console.print(f"[bold green]✨ UID {uid} → Launched[/bold green]")
                 await asyncio.sleep(0.05)
 
-            # ── ২. মৃত / crash হওয়া task detect করা ──
+            # ── Crash detect + retry ──
             for uid in list(bot_tasks.keys()):
                 if bot_tasks[uid].done():
-                    try:
-                        exc = bot_tasks[uid].exception()
-                    except Exception:
-                        exc = None
+                    try: exc = bot_tasks[uid].exception()
+                    except Exception: exc = None
                     if exc:
-                        console.print(
-                            f"[bold red]⚠️ UID {uid} crashed: {exc} → "
-                            f"পরের cycle এ আবার চালু হবে[/bold red]"
-                        )
+                        console.print(f"[bold red]⚠️ UID {uid} crashed: {exc} → retry[/bold red]")
                     else:
-                        console.print(
-                            f"[bold yellow]⚠️ UID {uid} task শেষ → আবার চালু হবে[/bold yellow]"
-                        )
+                        console.print(f"[bold yellow]⚠️ UID {uid} task ended → retry[/bold yellow]")
                     if uid in active_bots:
-                        try:
-                            active_bots[uid].is_running = False
-                        except Exception:
-                            pass
+                        try: active_bots[uid].is_running = False
+                        except Exception: pass
                         del active_bots[uid]
                     del bot_tasks[uid]
 
-            # ── ৩. accs.json থেকে UID মুছে গেলে bot বন্ধ করা ──
+            # ── Deleted UID → stop bot ──
             for uid in list(bot_tasks.keys()):
                 if uid not in accounts:
-                    console.print(
-                        f"[bold red]🗑️ UID {uid} accs.json থেকে মুছে গেছে → বন্ধ করা হচ্ছে[/bold red]"
-                    )
+                    console.print(f"[bold red]🗑️ UID {uid} removed from file → stopping[/bold red]")
                     if uid in active_bots:
-                        try:
-                            active_bots[uid].is_running = False
-                        except Exception:
-                            pass
+                        try: active_bots[uid].is_running = False
+                        except Exception: pass
                         del active_bots[uid]
-                    if not bot_tasks[uid].done():
-                        bot_tasks[uid].cancel()
+                    if not bot_tasks[uid].done(): bot_tasks[uid].cancel()
                     del bot_tasks[uid]
                     with running_bots_lock:
                         running_bots.discard(uid)
+                    last_passwords.pop(uid, None)
 
-            # ── ৪. status log ──
             if accounts:
                 console.print(
                     f"[dim]📊 Active: {len(bot_tasks)}/{len(accounts)} accounts running[/dim]",
@@ -2012,6 +2026,52 @@ textarea:focus {{ border-color:#38bdf8; }}
 </div>
 
 <div class="section">
+<div class="section-header">
+<h2>👥 Account Manager (accounts.txt)</h2>
+<div class="live-indicator"><div class="pulse-dot"></div> <span id="acc-count">0</span> Accounts</div>
+</div>
+
+<div class="config-grid">
+
+<div style="background:rgba(15,23,42,0.5); padding:18px; border-radius:12px; border:1px solid rgba(56,189,248,0.2);">
+<div class="config-label" style="color:#38bdf8; font-size:1.1em;">➕ Add Single Account</div>
+<div style="display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; margin-top:10px;">
+<div>
+<div class="config-label" style="font-size:0.9em;">UID</div>
+<input type="text" id="new-uid" class="input-text" placeholder="e.g. 1234567890">
+</div>
+<div>
+<div class="config-label" style="font-size:0.9em;">Password</div>
+<input type="text" id="new-pwd" class="input-text" placeholder="account password">
+</div>
+<button class="btn btn-green" onclick="addSingleAccount()" style="padding:12px 24px;">➕ Add</button>
+</div>
+</div>
+
+<div style="background:rgba(15,23,42,0.5); padding:18px; border-radius:12px; border:1px solid rgba(236,72,153,0.2);">
+<div class="config-label" style="color:#ec4899; font-size:1.1em;">📂 Upload TXT File (Bulk)</div>
+<div class="help-text" style="margin-top:6px;">Format: প্রতি লাইনে <b>uid:password</b> অথবা <b>uid|password</b></div>
+<div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+<input type="file" id="acc-file" accept=".txt" style="color:#9ca3af; padding:10px; background:rgba(15,23,42,0.8); border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
+<button class="btn btn-pink" onclick="uploadAccFile()" style="padding:12px 24px; margin-top:0;">📤 Upload & Replace</button>
+</div>
+</div>
+
+<div>
+<div class="config-label" style="font-size:1.1em;">✏️ Edit / View All Accounts (Raw TXT)</div>
+<textarea id="acc-content" style="height:300px; color:#10b981; background:#0a0a0a;" spellcheck="false" placeholder="1234567890:mypassword&#10;9876543210:otherpass"></textarea>
+<div class="help-text">Format: <b>uid:password</b> প্রতি লাইনে। <code>#</code> দিয়ে comment করা যাবে।</div>
+<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+<button class="btn btn-green" onclick="saveAllAccounts()" id="acc-save-btn">💾 Save All</button>
+<button class="btn btn-orange" onclick="reloadAccounts()">🔄 Reload from Server</button>
+<button class="btn" onclick="downloadAccounts()" style="background:linear-gradient(135deg,#06b6d4,#0891b2);">📥 Download TXT</button>
+</div>
+</div>
+
+</div>
+</div>
+
+<div class="section">
 <div class="section-header"><h2>⚙️ Squad Configuration</h2></div>
 <form id="squad-form" onsubmit="saveSquadConfig(event)">
 <div class="config-grid">
@@ -2145,6 +2205,103 @@ if (r.ok) showToast('⚙️ Saved!');
 btn.innerText = '💾 SAVE SQUAD CONFIG'; btn.disabled = false;
 }}
 
+// ============ ACCOUNT MANAGEMENT ============
+
+async function loadAccountsList() {{
+try {{
+const r = await fetch('/api/accounts');
+if (!r.ok) return;
+const d = await r.json();
+document.getElementById('acc-content').value = d.content || '';
+document.getElementById('acc-count').innerText = d.count || 0;
+}} catch(e) {{}}
+}}
+
+async function addSingleAccount() {{
+const uid = document.getElementById('new-uid').value.trim();
+const pwd = document.getElementById('new-pwd').value.trim();
+if (!uid || !pwd) {{ showToast('❌ UID/Password দিন', '#ef4444'); return; }}
+if (!/^\\d+$/.test(uid)) {{ showToast('❌ UID শুধু number হবে', '#ef4444'); return; }}
+try {{
+const body = new URLSearchParams();
+body.append('uid', uid);
+body.append('password', pwd);
+const r = await fetch('/add_account', {{method:'POST', body: body.toString()}});
+if (r.ok) {{
+showToast('✅ Account যোগ হয়েছে!');
+document.getElementById('new-uid').value = '';
+document.getElementById('new-pwd').value = '';
+await loadAccountsList();
+}} else {{
+showToast('❌ ব্যর্থ', '#ef4444');
+}}
+}} catch(e) {{ showToast('❌ Error', '#ef4444'); }}
+}}
+
+async function saveAllAccounts() {{
+const content = document.getElementById('acc-content').value;
+const btn = document.getElementById('acc-save-btn');
+btn.innerText = '⏳ Saving...'; btn.disabled = true;
+try {{
+const body = new URLSearchParams();
+body.append('content', content);
+const r = await fetch('/save_accounts', {{method:'POST', body: body.toString()}});
+if (r.ok) {{
+const res = await r.text();
+showToast('💾 ' + res);
+await loadAccountsList();
+}} else {{
+showToast('❌ Save fail', '#ef4444');
+}}
+}} catch(e) {{ showToast('❌ Error', '#ef4444'); }}
+btn.innerText = '💾 Save All'; btn.disabled = false;
+}}
+
+async function reloadAccounts() {{
+await loadAccountsList();
+showToast('🔄 Reloaded');
+}}
+
+function downloadAccounts() {{
+const content = document.getElementById('acc-content').value;
+const blob = new Blob([content], {{type: 'text/plain'}});
+const a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = 'accounts.txt';
+a.click();
+URL.revokeObjectURL(a.href);
+showToast('📥 Downloaded!');
+}}
+
+async function uploadAccFile() {{
+const fileInput = document.getElementById('acc-file');
+if (!fileInput.files || !fileInput.files[0]) {{
+showToast('❌ File select করুন', '#ef4444'); return;
+}}
+const file = fileInput.files[0];
+const reader = new FileReader();
+reader.onload = async (e) => {{
+const content = e.target.result;
+document.getElementById('acc-content').value = content;
+try {{
+const body = new URLSearchParams();
+body.append('content', content);
+const r = await fetch('/save_accounts', {{method:'POST', body: body.toString()}});
+if (r.ok) {{
+const res = await r.text();
+showToast('📤 Upload OK — ' + res);
+await loadAccountsList();
+fileInput.value = '';
+}} else {{
+showToast('❌ Upload fail', '#ef4444');
+}}
+}} catch(err) {{ showToast('❌ Error', '#ef4444'); }}
+}};
+reader.readAsText(file);
+}}
+
+// ============ STATS & LOGS ============
+
 async function fetchStats() {{
 try {{
 const r = await fetch('/api/stats'); if (!r.ok) return;
@@ -2181,6 +2338,9 @@ if (atBottom) el.scrollTop = el.scrollHeight;
 }}
 function clearLogView() {{ document.getElementById('live-log').innerHTML = '📡 Cleared.'; }}
 
+// Auto-load
+loadAccountsList();
+setInterval(loadAccountsList, 15000);
 fetchStats(); setInterval(fetchStats, 2000);
 fetchLogs(); setInterval(fetchLogs, 2500);
 </script>
@@ -2204,6 +2364,20 @@ fetchLogs(); setInterval(fetchLogs, 2500);
             self._json_response({'logs': logs})
             return
 
+        if self.path == '/api/accounts':
+            try:
+                with open(ACCOUNTS_FILE, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except Exception:
+                content = ""
+            accs = load_accounts()
+            self._json_response({
+                'content': content,
+                'count': len(accs),
+                'accounts': [{'uid': u, 'password': p} for u, p in accs.items()]
+            })
+            return
+
         self.send_response(404); self.end_headers()
 
     def do_POST(self):
@@ -2218,6 +2392,48 @@ fetchLogs(); setInterval(fetchLogs, 2500);
             trigger_recreate_all()
             console.print("[bold yellow]🔄 Squad recreate triggered[/bold yellow]")
             self._text_response('OK'); return
+
+        if self.path == '/save_accounts':
+            params = parse_qs(raw)
+            new_content = params.get('content', [''])[0]
+            try:
+                save_accounts_raw(new_content)
+                cnt = len(load_accounts())
+                console.print(f"[bold green]💾 Accounts saved ({cnt} entries)[/bold green]")
+                self._text_response(f'OK:{cnt}')
+            except Exception as e:
+                self._text_response(f'Error: {e}', 500)
+            return
+
+        if self.path == '/add_account':
+            params = parse_qs(raw)
+            uid = params.get('uid', [''])[0].strip()
+            pwd = params.get('password', [''])[0].strip()
+            if not uid.isdigit() or not pwd:
+                self._text_response('Invalid uid/password', 400); return
+            try:
+                accs = load_accounts()
+                accs[uid] = pwd
+                save_accounts(accs)
+                console.print(f"[bold green]➕ Account added: {uid}[/bold green]")
+                self._text_response('OK')
+            except Exception as e:
+                self._text_response(f'Error: {e}', 500)
+            return
+
+        if self.path == '/delete_account':
+            params = parse_qs(raw)
+            uid = params.get('uid', [''])[0].strip()
+            try:
+                accs = load_accounts()
+                if uid in accs:
+                    del accs[uid]
+                    save_accounts(accs)
+                    console.print(f"[bold red]🗑️ Account deleted: {uid}[/bold red]")
+                self._text_response('OK')
+            except Exception as e:
+                self._text_response(f'Error: {e}', 500)
+            return
 
         if self.path == '/save_squad_config':
             params = parse_qs(raw)
@@ -2286,7 +2502,8 @@ async def main_async():
         "[bold magenta]👗 AUTO BUNDLE ON JOIN: ENABLED ✅[/bold magenta]\n"
         "[bold yellow]⏰ AUTO RECREATE CYCLE: 5 SECONDS (EXIT → CREATE → RECRUIT)[/bold yellow]\n"
         "[bold cyan]📢 TEAM CHAT CMDS: /help /app /store HI .time MAHIR my id[/bold cyan]\n"
-        "[bold green]🚀 ALL ACCOUNTS RUN CONCURRENTLY (auto-retry on fail)[/bold green]",
+        "[bold green]🚀 ALL ACCOUNTS RUN CONCURRENTLY (auto-retry on fail)[/bold green]\n"
+        "[bold yellow]👥 WEB ACCOUNT MANAGER: Add / Edit / Upload / Download ✅[/bold yellow]",
         title="[bold red]🔥 MAHIR SQUAD BOT 🔥[/bold red]",
         border_style="bright_red", expand=False))
     while True: await asyncio.sleep(3600)
