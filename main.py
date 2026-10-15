@@ -1,53 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# MAHIR SQUAD BOT — FULL EDITION (NO FALLBACK)
-# ✅ AUTO UPDATE (API ONLY · NO DEFAULT)
-# ✅ AUTO EMOTE EQUIP ON LOGIN
-# ✅ AUTO ANIMATION LOOP
-# ✅ RANDOM EMOTE ON MEMBER JOIN (0.5s)
-# ✅ DUAL WORLD RECRUIT (1/2/Half/Random)
-# ✅ WEB ACCOUNT MANAGER (TXT)
-# ✅ STOP ALL BOTS (ONE CLICK)
+# MAHIR SQUAD BOT — PREMIUM CYBERPUNK EDITION (FIXED)
+# ✅ Auto Update · Auto Emote · Auto Animation · Dual Recruit
+# ✅ Web Account Manager · Stop All · Auto Kick
+# ✅ Web-Editable Join Emotes · Bot Self-Emote Toggle
+# ✅ Premium Cyberpunk RGB Dashboard
 
-import subprocess
-import sys
-import importlib
-import os
-import ssl
-import json
-import time
-import random
-import asyncio
-import threading
-import gc
-import re
-import struct
-import base64
+import subprocess, sys, importlib, os, ssl, json, time, random, asyncio, threading, gc, re, struct, base64
 from collections import deque
 from datetime import datetime
-from io import BytesIO
-import gzip
-import http.client
-import uuid
-import requests
-import urllib3
+import gzip, http.client, uuid, requests, urllib3
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import webbrowser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs
-
-import aiohttp
-import jwt
+import aiohttp, jwt
 from rich.console import Console
 from rich.panel import Panel
-from rich.align import Align
 from cfonts import render
-
 from protobuf_decoder.protobuf_decoder import Parser
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 console = Console()
 
 # ========== LIVE LOG BUFFER ==========
@@ -56,23 +30,19 @@ log_lock = threading.Lock()
 _orig_console_print = console.print
 
 def _patched_console_print(*args, **kwargs):
-    try:
-        _orig_console_print(*args, **kwargs)
-    except Exception:
-        pass
+    try: _orig_console_print(*args, **kwargs)
+    except Exception: pass
     try:
         text = " ".join(str(a) for a in args)
         text = re.sub(r'\[/?[a-zA-Z0-9_#= ]+\]', '', text)
         ts = datetime.now().strftime("%H:%M:%S")
-        with log_lock:
-            log_buffer.append(f"[{ts}] {text}")
-    except Exception:
-        pass
+        with log_lock: log_buffer.append(f"[{ts}] {text}")
+    except Exception: pass
 
 console.print = _patched_console_print
 
 # ================================================================
-#   🔄 AUTO UPDATE — FALLBACK REMOVED (API ONLY)
+#   AUTO UPDATE (NO FALLBACK)
 # ================================================================
 try:
     from google_play_scraper import app as _gps_app
@@ -81,97 +51,51 @@ except Exception:
     _GPS_AVAILABLE = False
     console.print("[bold yellow]⚠ google-play-scraper not installed[/bold yellow]")
 
-# Empty — API থেকে fill হবে
-DYNAMIC_SERVER_URL = ""
-CURRENT_OB = ""
-FREEFIRE_VERSION_NAME = ""
-STORE_VERSION = ""
-DYNAMIC_CLIENT_URL = ""
-login_url = ""
-ob = ""
-version = ""
-
+DYNAMIC_SERVER_URL = CURRENT_OB = FREEFIRE_VERSION_NAME = STORE_VERSION = DYNAMIC_CLIENT_URL = login_url = ob = version = ""
 
 def AuToUpDaTE(max_retries: int = 6, retry_delay: int = 5):
-    """শুধুমাত্র Play Store + API থেকে লাইভ ডাটা নেয়। কোনো fallback নেই।"""
     if not _GPS_AVAILABLE:
-        console.print("[bold red]❌ google-play-scraper missing! Install first.[/bold red]")
-        sys.exit(1)
-
+        console.print("[bold red]❌ google-play-scraper missing![/bold red]"); sys.exit(1)
     for attempt in range(1, max_retries + 1):
         try:
-            console.print(f"[cyan]🌐 [{attempt}/{max_retries}] Fetching live version from Play Store...[/cyan]")
-
+            console.print(f"[cyan]🌐 [{attempt}/{max_retries}] Fetching live version...[/cyan]")
             data = _gps_app('com.dts.freefireth', lang="fr", country='CA')
             store_version = data.get("version")
-            if not store_version:
-                raise RuntimeError("Play Store returned empty version")
-
-            api_url = (
-                f"https://version.ggwhitehawk.com/live/ver.php"
-                f"?version={store_version}&lang=fr&device=android&channel=android"
-            )
+            if not store_version: raise RuntimeError("Empty store version")
+            api_url = f"https://version.ggwhitehawk.com/live/ver.php?version={store_version}&lang=fr&device=android&channel=android"
             r = requests.get(api_url, timeout=20)
-            if r.status_code != 200:
-                raise RuntimeError(f"API HTTP {r.status_code}")
-
-            json_data = r.json()
-            server_url   = json_data.get('server_url')
-            ob_version   = json_data.get('latest_release_version')
-            remote_patch = json_data.get('remote_version')
-
-            missing = []
-            if not server_url:   missing.append("server_url")
-            if not ob_version:   missing.append("latest_release_version")
-            if not remote_patch: missing.append("remote_version")
-
-            if missing:
-                raise RuntimeError(f"API missing fields: {', '.join(missing)}")
-
-            return (
-                str(server_url).strip(),
-                str(ob_version).strip(),
-                str(remote_patch).strip(),
-                str(store_version).strip(),
-            )
-
+            if r.status_code != 200: raise RuntimeError(f"HTTP {r.status_code}")
+            j = r.json()
+            su, obv, rp = j.get('server_url'), j.get('latest_release_version'), j.get('remote_version')
+            missing = [n for n, v in [("server_url", su), ("ob", obv), ("remote", rp)] if not v]
+            if missing: raise RuntimeError(f"Missing: {missing}")
+            return str(su).strip(), str(obv).strip(), str(rp).strip(), str(store_version).strip()
         except Exception as e:
             console.print(f"[bold yellow]⚠ Attempt {attempt} failed: {e}[/bold yellow]")
-            if attempt < max_retries:
-                console.print(f"[cyan]⏳ Retrying in {retry_delay}s...[/cyan]")
-                time.sleep(retry_delay)
-            else:
-                console.print("[bold red]❌ All retries failed. Cannot get live data.[/bold red]")
-                console.print("[bold red]❌ Bot will exit now.[/bold red]")
-                sys.exit(1)
-
+            if attempt < max_retries: time.sleep(retry_delay)
+            else: console.print("[bold red]❌ All retries failed[/bold red]"); sys.exit(1)
 
 _tmp = AuToUpDaTE()
 DYNAMIC_SERVER_URL    = _tmp[0].rstrip('/')
 CURRENT_OB            = _tmp[1]
 FREEFIRE_VERSION_NAME = _tmp[2]
 STORE_VERSION         = _tmp[3]
-
-login_url          = DYNAMIC_SERVER_URL
-ob                 = CURRENT_OB
-version            = FREEFIRE_VERSION_NAME
+login_url = DYNAMIC_SERVER_URL
+ob = CURRENT_OB
+version = FREEFIRE_VERSION_NAME
 DYNAMIC_CLIENT_URL = DYNAMIC_SERVER_URL.replace("loginbp", "clientbp")
 
 if not all([DYNAMIC_SERVER_URL, CURRENT_OB, FREEFIRE_VERSION_NAME, STORE_VERSION]):
-    console.print("[bold red]❌ Critical: Live data missing![/bold red]")
-    sys.exit(1)
+    console.print("[bold red]❌ Critical: Live data missing![/bold red]"); sys.exit(1)
 
 console.print(f"""
 [bold green]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚀 LIVE DATA LOADED (STRICT MODE — NO FALLBACK)
+🚀 LIVE DATA LOADED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📦 Current OB         : [white]{CURRENT_OB}[/white]
-🛒 Play Store Version : [white]{STORE_VERSION}[/white]
-🎮 Remote Version     : [white]{FREEFIRE_VERSION_NAME}[/white]
-🌐 Dynamic Server     : [white]{DYNAMIC_SERVER_URL}[/white]
-
-✅ All values fetched from API.
+📦 OB         : [white]{CURRENT_OB}[/white]
+🛒 Store Ver  : [white]{STORE_VERSION}[/white]
+🎮 Remote Ver : [white]{FREEFIRE_VERSION_NAME}[/white]
+🌐 Server     : [white]{DYNAMIC_SERVER_URL}[/white]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """)
 
@@ -180,28 +104,18 @@ WEB_CONFIG_FILE = "web_config.json"
 ACCOUNTS_FILE = "accounts.txt"
 
 # ================================================================
-#   🎭 EMOTE EQUIP SYSTEM
+#   EMOTE EQUIP SYSTEM
 # ================================================================
 EMOTE_DATA_HEX = "CA F6 83 22 2A 25 C7 BE FE B5 1F 59 54 4D B3 13"
 EMOTE_BINARY = bytes.fromhex(EMOTE_DATA_HEX.replace(" ", ""))
-
 REGION_SERVER_MAP = {
-    "BD":  DYNAMIC_CLIENT_URL,
-    "IND": "https://client.ind.freefiremobile.com",
-    "PK":  DYNAMIC_CLIENT_URL,
-    "ME":  DYNAMIC_CLIENT_URL,
-    "VN":  DYNAMIC_CLIENT_URL,
-    "SG":  DYNAMIC_CLIENT_URL,
-    "ID":  DYNAMIC_CLIENT_URL,
-    "TH":  DYNAMIC_CLIENT_URL,
-    "BR":  "https://client.us.freefiremobile.com",
-    "NA":  "https://client.us.freefiremobile.com",
-    "US":  "https://client.us.freefiremobile.com",
-    "RU":  DYNAMIC_CLIENT_URL,
+    "BD": DYNAMIC_CLIENT_URL, "IND": "https://client.ind.freefiremobile.com",
+    "PK": DYNAMIC_CLIENT_URL, "ME": DYNAMIC_CLIENT_URL, "VN": DYNAMIC_CLIENT_URL,
+    "SG": DYNAMIC_CLIENT_URL, "ID": DYNAMIC_CLIENT_URL, "TH": DYNAMIC_CLIENT_URL,
+    "BR": "https://client.us.freefiremobile.com", "NA": "https://client.us.freefiremobile.com",
+    "US": "https://client.us.freefiremobile.com", "RU": DYNAMIC_CLIENT_URL,
 }
-
-console.print(f"[green]✅ Region Servers Synced with: {DYNAMIC_CLIENT_URL}[/green]")
-
+console.print(f"[green]✅ Region Servers Synced: {DYNAMIC_CLIENT_URL}[/green]")
 
 def decode_jwt_noverify(token: str):
     try:
@@ -209,23 +123,17 @@ def decode_jwt_noverify(token: str):
         if len(parts) < 2: return None
         payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
         return json.loads(base64.urlsafe_b64decode(payload_b64).decode())
-    except Exception:
-        return None
-
+    except Exception: return None
 
 async def equip_emote_on_login(jwt_token, logger=None):
     log = logger or console.print
     try:
         payload = decode_jwt_noverify(jwt_token)
-        if not payload:
-            log("[red]❌ Emote Equip: Invalid JWT[/red]"); return
+        if not payload: log("[red]❌ Emote Equip: Invalid JWT[/red]"); return
         region_code = payload.get("noti_region") or payload.get("lock_region")
-        if not region_code:
-            log("[red]❌ Emote Equip: Region not found[/red]"); return
+        if not region_code: log("[red]❌ Emote Equip: Region not found[/red]"); return
         base_url = REGION_SERVER_MAP.get(region_code.upper())
-        if not base_url:
-            log(f"[red]❌ Emote Equip: No server mapping for {region_code}[/red]"); return
-
+        if not base_url: log(f"[red]❌ Emote Equip: No mapping for {region_code}[/red]"); return
         url = f"{base_url}/ChooseEmote"
         headers = {
             "Accept-Encoding": "gzip", "Connection": "Keep-Alive",
@@ -237,13 +145,9 @@ async def equip_emote_on_login(jwt_token, logger=None):
         }
         async with aiohttp.ClientSession() as session:
             async with session.post(url, headers=headers, data=EMOTE_BINARY, ssl=False, timeout=10) as resp:
-                if resp.status == 200:
-                    log(f"[bold green]✅ Emote Equip OK ({region_code})[/bold green]")
-                else:
-                    log(f"[bold yellow]⚠ Emote Equip Failed. Status: {resp.status}[/bold yellow]")
-    except Exception as e:
-        log(f"[red]❌ Emote Equip Error: {e}[/red]")
-
+                if resp.status == 200: log(f"[bold green]✅ Emote Equip OK ({region_code})[/bold green]")
+                else: log(f"[bold yellow]⚠ Emote Equip Failed ({resp.status})[/bold yellow]")
+    except Exception as e: log(f"[red]❌ Emote Equip Error: {e}[/red]")
 
 # ========== GLOBAL TRACKING ==========
 welcome_tracking = {}
@@ -251,7 +155,6 @@ running_bots = set()
 running_bots_lock = threading.Lock()
 bot_status = {}
 bot_lock = threading.Lock()
-
 online_count = 0
 total_accounts = 0
 active_accounts = []
@@ -261,95 +164,67 @@ active_lock = threading.Lock()
 signal_lock = threading.Lock()
 _restart_timestamp = 0
 _recreate_timestamp = 0
-
 _stop_all_flag = False
 _stop_all_lock = threading.Lock()
 
-
 def trigger_restart_all():
     global _restart_timestamp
-    with signal_lock:
-        _restart_timestamp = time.time()
-
+    with signal_lock: _restart_timestamp = time.time()
 
 def trigger_recreate_all():
     global _recreate_timestamp
-    with signal_lock:
-        _recreate_timestamp = time.time()
-
+    with signal_lock: _recreate_timestamp = time.time()
 
 def get_restart_timestamp():
-    with signal_lock:
-        return _restart_timestamp
-
+    with signal_lock: return _restart_timestamp
 
 def get_recreate_timestamp():
-    with signal_lock:
-        return _recreate_timestamp
+    with signal_lock: return _recreate_timestamp
 
-
-def set_stop_all(value: bool):
+def set_stop_all(v: bool):
     global _stop_all_flag
-    with _stop_all_lock:
-        _stop_all_flag = bool(value)
-
+    with _stop_all_lock: _stop_all_flag = bool(v)
 
 def is_stopped() -> bool:
-    with _stop_all_lock:
-        return _stop_all_flag
-
+    with _stop_all_lock: return _stop_all_flag
 
 # ================================================================
-#   SAFE FIELD EXTRACTORS
+#   SAFE EXTRACTORS
 # ================================================================
-def safe_get_data(field):
-    if field is None: return None
-    if isinstance(field, dict): return field.get("data")
-    return field
+def safe_get_data(f):
+    if f is None: return None
+    if isinstance(f, dict): return f.get("data")
+    return f
 
-def safe_get_int(field, default=None):
-    val = safe_get_data(field)
-    if val is None: return default
-    if isinstance(val, bool): return int(val)
-    if isinstance(val, int): return val
-    if isinstance(val, (str, bytes, bytearray)):
-        try: return int(val)
-        except (ValueError, TypeError): return default
+def safe_get_int(f, default=None):
+    v = safe_get_data(f)
+    if v is None: return default
+    if isinstance(v, bool): return int(v)
+    if isinstance(v, int): return v
+    if isinstance(v, (str, bytes, bytearray)):
+        try: return int(v)
+        except: return default
     return default
 
-def safe_get_str(field, default=""):
-    val = safe_get_data(field)
-    if val is None: return default
-    if isinstance(val, str): return val
-    if isinstance(val, (bytes, bytearray)):
-        try: return val.decode('utf-8', errors='ignore')
-        except Exception: return default
-    return str(val)
+def safe_get_str(f, default=""):
+    v = safe_get_data(f)
+    if v is None: return default
+    if isinstance(v, str): return v
+    if isinstance(v, (bytes, bytearray)):
+        try: return v.decode('utf-8', errors='ignore')
+        except: return default
+    return str(v)
 
-def safe_dict(field):
-    val = safe_get_data(field)
-    if isinstance(val, dict): return val
-    return {}
+def safe_dict(f):
+    v = safe_get_data(f)
+    return v if isinstance(v, dict) else {}
 
 # ================================================================
 #   POOLS
 # ================================================================
-AUTO_BUNDLE_POOL = [
-    914000002, 914000003, 914038001, 914039001,
-    914042001, 914044001, 914047001, 914047002,
-    914048001, 914050001, 914051001, 914053001,
-]
-
-ANIMATION_POOL = [
-    914000002, 914000003, 914038001, 914039001,
-    914042001, 914044001, 914047001, 914047002,
-    914048001, 914050001, 914051001, 914053001,
-]
-
-JOIN_EMOTE_POOL = [
-    909049013, 909045010, 909000020, 909000010,
-    909055004, 909055005, 909000062,
-]
+AUTO_BUNDLE_POOL = [914000002, 914000003, 914038001, 914039001, 914042001, 914044001, 914047001, 914047002, 914048001, 914050001, 914051001, 914053001]
+ANIMATION_POOL = AUTO_BUNDLE_POOL[:]
+DEFAULT_JOIN_EMOTES = [909049013, 909045010, 909000020, 909000010, 909055004, 909055005, 909000062]
 
 _last_bundle_time = {}
 _BUNDLE_COOLDOWN = 3.0
@@ -373,29 +248,10 @@ DEFAULT_WELCOME_MSG = (
 )
 
 DEFAULT_COMMANDS = {
-    "/store": {
-        "enabled": True, "match": "contains", "type": "message",
-        "response": (
-            "[C][FFD700]❖━━━━━━━━━━━━━━━❖\n"
-            "[C][B][00FFFF]⚡ MAHIR BOT STORE ⚡\n"
-            "[C][FFD700]────────────────\n"
-            "[C][00FF00]🤖 TCP BOT Price : [FFFF00]500 BDT\n"
-            "[C][00FF00]🌐 Website       : [FFFF00]mahir.xo.je\n"
-            "[C][00FF00]👤 Owner Telegram : [FFFF00]@MAHIR0208\n"
-            "[C][FFD700]❖━━━━━━━━━━━━━━━❖"
-        )
-    },
-    "/app": {
-        "enabled": True, "match": "contains", "type": "message",
-        "response": (
-            "[C][FFD700]❖━━━━━━━━━━━━━━━❖\n"
-            "[C][B][00FFFF]📱 MAHIR TCP OFFICIAL APP 📱\n"
-            "[C][FFD700]────────────────\n"
-            "[C][FFFFFF]Download Link:\n"
-            "[C][00FF00]https://www.mediafire.com/file/lvykrek51q17hae/MAHIR_TCP.apk\n"
-            "[C][FFD700]❖━━━━━━━━━━━━━━━❖"
-        )
-    },
+    "/store": {"enabled": True, "match": "contains", "type": "message",
+        "response": "[C][FFD700]⚡ MAHIR BOT STORE ⚡\n[C][00FF00]🤖 TCP BOT: [FFFF00]500 BDT\n[C][00FF00]🌐 Website: [FFFF00]mahir.xo.je\n[C][00FF00]👤 Owner: [FFFF00]@MAHIR0208"},
+    "/app": {"enabled": True, "match": "contains", "type": "message",
+        "response": "[C][B][00FFFF]📱 MAHIR TCP APP\n[C][00FF00]https://www.mediafire.com/file/lvykrek51q17hae/MAHIR_TCP.apk"},
     "st": {"enabled": True, "match": "exact", "type": "recruit_squad"}
 }
 
@@ -417,85 +273,97 @@ web_config = {
     "auto_animation": True,
     "animation_interval_sec": 10,
     "auto_emote_on_join": True,
+    "emote_join_delay_sec": 0.5,
+    "join_emote_pool": DEFAULT_JOIN_EMOTES[:],
+    "auto_kick_on_join": False,
+    "kick_delay_sec": 1.0,
+    "kick_msg": "[B][C][FF0000]🚫 ACCESS DENIED!\n[FFFFFF]You have been auto-kicked.",
+    "auto_welcome_on_join": True,
+    "welcome_delay_sec": 0.5,
+    "bot_self_emote_enabled": False,
+    "bot_self_emote_pool": DEFAULT_JOIN_EMOTES[:],
+    "bot_self_emote_interval": 8.0,
     "commands": {},
 }
 web_config_lock = threading.Lock()
 
-
 def to_json_safe(obj):
-    if isinstance(obj, dict):
-        return {str(k): to_json_safe(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [to_json_safe(item) for item in obj]
-    elif isinstance(obj, (bytes, bytearray)):
-        return {"__hex__": bytes(obj).hex()}
+    if isinstance(obj, dict): return {str(k): to_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list): return [to_json_safe(i) for i in obj]
+    if isinstance(obj, (bytes, bytearray)): return {"__hex__": bytes(obj).hex()}
     return obj
-
 
 def from_json_safe(obj):
     if isinstance(obj, dict):
         if "__hex__" in obj and len(obj) == 1:
             try: return bytes.fromhex(obj["__hex__"])
-            except Exception: return b""
-        result = {}
+            except: return b""
+        r = {}
         for k, v in obj.items():
             try: key = int(k)
-            except (ValueError, TypeError): key = k
-            result[key] = from_json_safe(v)
-        return result
-    elif isinstance(obj, list):
-        return [from_json_safe(item) for item in obj]
+            except: key = k
+            r[key] = from_json_safe(v)
+        return r
+    if isinstance(obj, list): return [from_json_safe(i) for i in obj]
     return obj
-
 
 def load_web_config():
     try:
         saved = {}
         if os.path.exists(WEB_CONFIG_FILE):
-            with open(WEB_CONFIG_FILE, "r", encoding="utf-8") as f:
-                saved = json.load(f)
+            with open(WEB_CONFIG_FILE, "r", encoding="utf-8") as f: saved = json.load(f)
         with web_config_lock:
-            ss = saved.get("squad_size")
-            if isinstance(ss, int) and 3 <= ss <= 5: web_config["squad_size"] = ss
+            int_fields = {
+                "squad_size": (3, 5), "world_recruit_count": (1, 10),
+                "squad_lifetime_sec": (5, 3600), "bundle_count_on_join": (1, 5),
+                "animation_interval_sec": (5, 300),
+            }
+            for k, (lo, hi) in int_fields.items():
+                v = saved.get(k)
+                if isinstance(v, int) and lo <= v <= hi: web_config[k] = v
 
-            wrc = saved.get("world_recruit_count")
-            if isinstance(wrc, int) and 1 <= wrc <= 10: web_config["world_recruit_count"] = wrc
+            float_fields = {
+                "recruit_delay_sec": (0.5, 30), "emote_join_delay_sec": (0.1, 30),
+                "kick_delay_sec": (0.1, 30), "welcome_delay_sec": (0.1, 30),
+                "bot_self_emote_interval": (1, 300),
+            }
+            for k, (lo, hi) in float_fields.items():
+                v = saved.get(k)
+                if isinstance(v, (int, float)) and lo <= float(v) <= hi: web_config[k] = float(v)
 
             wrt = saved.get("world_recruit_type")
             if wrt in ("1", "2", "half", "random"): web_config["world_recruit_type"] = wrt
 
-            slt = saved.get("squad_lifetime_sec")
-            if isinstance(slt, int) and 5 <= slt <= 3600: web_config["squad_lifetime_sec"] = slt
-
-            ar = saved.get("auto_recreate")
-            if isinstance(ar, bool): web_config["auto_recreate"] = ar
+            bool_fields = [
+                "auto_recreate", "auto_recruit_on_join", "auto_recruit_on_leave",
+                "auto_bundle_on_join", "auto_animation", "auto_emote_on_join",
+                "auto_kick_on_join", "auto_welcome_on_join", "bot_self_emote_enabled"
+            ]
+            for bf in bool_fields:
+                v = saved.get(bf)
+                if isinstance(v, bool): web_config[bf] = v
 
             wm = saved.get("welcome_msg")
             if isinstance(wm, str) and wm: web_config["welcome_msg"] = wm
 
-            aro = saved.get("auto_recruit_on_join")
-            if isinstance(aro, bool): web_config["auto_recruit_on_join"] = aro
+            km = saved.get("kick_msg")
+            if isinstance(km, str) and km: web_config["kick_msg"] = km
 
-            arl = saved.get("auto_recruit_on_leave")
-            if isinstance(arl, bool): web_config["auto_recruit_on_leave"] = arl
+            jep = saved.get("join_emote_pool")
+            if isinstance(jep, list):
+                cleaned = []
+                for x in jep:
+                    try: cleaned.append(int(x))
+                    except: pass
+                if cleaned: web_config["join_emote_pool"] = cleaned
 
-            rds = saved.get("recruit_delay_sec")
-            if isinstance(rds, (int, float)) and 0.5 <= rds <= 30: web_config["recruit_delay_sec"] = float(rds)
-
-            abj = saved.get("auto_bundle_on_join")
-            if isinstance(abj, bool): web_config["auto_bundle_on_join"] = abj
-
-            bcj = saved.get("bundle_count_on_join")
-            if isinstance(bcj, int) and 1 <= bcj <= 5: web_config["bundle_count_on_join"] = bcj
-
-            aan = saved.get("auto_animation")
-            if isinstance(aan, bool): web_config["auto_animation"] = aan
-
-            ais = saved.get("animation_interval_sec")
-            if isinstance(ais, int) and 5 <= ais <= 300: web_config["animation_interval_sec"] = ais
-
-            aej = saved.get("auto_emote_on_join")
-            if isinstance(aej, bool): web_config["auto_emote_on_join"] = aej
+            bsep = saved.get("bot_self_emote_pool")
+            if isinstance(bsep, list):
+                cleaned = []
+                for x in bsep:
+                    try: cleaned.append(int(x))
+                    except: pass
+                if cleaned: web_config["bot_self_emote_pool"] = cleaned
 
             cmds_saved = saved.get("commands", {})
             commands = {}
@@ -503,17 +371,15 @@ def load_web_config():
                 if name in cmds_saved:
                     try:
                         loaded = from_json_safe(cmds_saved[name])
-                        if isinstance(loaded, dict): commands[name] = loaded
-                        else: commands[name] = dict(default_val)
-                    except Exception: commands[name] = dict(default_val)
-                else:
-                    commands[name] = dict(default_val)
+                        commands[name] = loaded if isinstance(loaded, dict) else dict(default_val)
+                    except: commands[name] = dict(default_val)
+                else: commands[name] = dict(default_val)
             for name, val in cmds_saved.items():
                 if name not in commands:
                     try:
                         loaded = from_json_safe(val)
                         if isinstance(loaded, dict): commands[name] = loaded
-                    except Exception: pass
+                    except: pass
             web_config["commands"] = commands
         console.print(f"[bold green]✅ Config Loaded[/bold green]")
     except Exception as e:
@@ -521,34 +387,25 @@ def load_web_config():
         with web_config_lock:
             web_config["commands"] = {k: dict(v) for k, v in DEFAULT_COMMANDS.items()}
 
-
 def save_web_config():
     try:
         with web_config_lock:
-            data = {
-                "squad_size": web_config["squad_size"],
-                "world_recruit_count": web_config["world_recruit_count"],
-                "world_recruit_type": web_config.get("world_recruit_type", "1"),
-                "squad_lifetime_sec": web_config["squad_lifetime_sec"],
-                "auto_recreate": web_config["auto_recreate"],
-                "welcome_msg": web_config["welcome_msg"],
-                "auto_recruit_on_join": web_config.get("auto_recruit_on_join", True),
-                "auto_recruit_on_leave": web_config.get("auto_recruit_on_leave", True),
-                "recruit_delay_sec": web_config.get("recruit_delay_sec", 1.5),
-                "auto_bundle_on_join": web_config.get("auto_bundle_on_join", True),
-                "bundle_count_on_join": web_config.get("bundle_count_on_join", 2),
-                "auto_animation": web_config.get("auto_animation", True),
-                "animation_interval_sec": web_config.get("animation_interval_sec", 10),
-                "auto_emote_on_join": web_config.get("auto_emote_on_join", True),
-                "commands": to_json_safe(web_config["commands"]),
-            }
+            data = {k: web_config[k] for k in [
+                "squad_size", "world_recruit_count", "world_recruit_type",
+                "squad_lifetime_sec", "auto_recreate", "welcome_msg",
+                "auto_recruit_on_join", "auto_recruit_on_leave", "recruit_delay_sec",
+                "auto_bundle_on_join", "bundle_count_on_join", "auto_animation",
+                "animation_interval_sec", "auto_emote_on_join", "emote_join_delay_sec",
+                "join_emote_pool", "auto_kick_on_join", "kick_delay_sec", "kick_msg",
+                "auto_welcome_on_join", "welcome_delay_sec",
+                "bot_self_emote_enabled", "bot_self_emote_pool", "bot_self_emote_interval",
+            ]}
+            data["commands"] = to_json_safe(web_config["commands"])
         with open(WEB_CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
         return True
     except Exception as e:
-        console.print(f"[bold red]Config Save Error: {e}[/bold red]")
-        return False
-
+        console.print(f"[bold red]Config Save Error: {e}[/bold red]"); return False
 
 # ================================================================
 #   ACCOUNT STORAGE
@@ -557,61 +414,48 @@ def load_accounts(file_path=ACCOUNTS_FILE):
     try:
         if not os.path.exists(file_path):
             with open(file_path, "w", encoding="utf-8") as f: f.write("")
-            console.print(f"[bold yellow]📁 {file_path} তৈরি করা হয়েছে[/bold yellow]")
             return {}
-
-        with open(file_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-
+        with open(file_path, "r", encoding="utf-8") as f: lines = f.readlines()
         accounts = {}
-        for raw_line in lines:
-            line = raw_line.strip()
+        for raw in lines:
+            line = raw.strip()
             if not line or line.startswith("#"): continue
             sep = ":" if ":" in line else ("|" if "|" in line else None)
             if sep is None: continue
             parts = line.split(sep, 1)
             if len(parts) != 2: continue
-            uid = parts[0].strip(); pwd = parts[1].strip()
-            if uid.isdigit() and pwd:
-                accounts[uid] = pwd
+            uid, pwd = parts[0].strip(), parts[1].strip()
+            if uid.isdigit() and pwd: accounts[uid] = pwd
         return accounts
     except Exception as e:
-        console.print(f"[bold red]Acc Load Error: {e}[/bold red]")
-        return {}
+        console.print(f"[bold red]Acc Load Error: {e}[/bold red]"); return {}
 
-
-def save_accounts(accounts_dict, file_path=ACCOUNTS_FILE):
+def save_accounts(accs, file_path=ACCOUNTS_FILE):
     try:
         with open(file_path, "w", encoding="utf-8") as f:
-            for uid, pwd in accounts_dict.items():
-                f.write(f"{uid}:{pwd}\n")
+            for uid, pwd in accs.items(): f.write(f"{uid}:{pwd}\n")
         return True
     except Exception as e:
-        console.print(f"[bold red]Acc Save Error: {e}[/bold red]")
-        return False
-
+        console.print(f"[bold red]Acc Save Error: {e}[/bold red]"); return False
 
 def save_accounts_raw(text, file_path=ACCOUNTS_FILE):
     try:
         with open(file_path, "w", encoding="utf-8") as f: f.write(text)
         return True
     except Exception as e:
-        console.print(f"[bold red]Acc Save Error: {e}[/bold red]")
-        return False
-
+        console.print(f"[bold red]Acc Save Error: {e}[/bold red]"); return False
 
 # ================================================================
 #   PROTOBUF HELPERS
 # ================================================================
 def read_varint(data, pos):
-    result = 0; shift = 0
+    result = shift = 0
     while pos < len(data):
         b = data[pos]; pos += 1
         result |= (b & 0x7F) << shift
         if not (b & 0x80): break
         shift += 7
     return result, pos
-
 
 def parse_pb(data):
     fields = {}; pos = 0; n = len(data)
@@ -630,30 +474,23 @@ def parse_pb(data):
         fields.setdefault(fn, []).append(val)
     return fields
 
-
 def extract_player_name(login_data_bytes):
     try:
         fields = parse_pb(login_data_bytes)
-        for field_num in [4, 3, 5, 6]:
-            if field_num in fields:
-                name_val = fields[field_num][0]
-                if isinstance(name_val, (bytes, bytearray)):
-                    decoded = name_val.decode('utf-8', errors='ignore')
-                    if (decoded and len(decoded) < 60 and
-                        not decoded.startswith("0OuCe") and
-                        not decoded.startswith("eyJ") and
-                        all(c.isprintable() or c in '\u200b\u200c\u200d' for c in decoded)):
-                        return decoded
-    except Exception: pass
+        for fn in [4, 3, 5, 6]:
+            if fn in fields:
+                nv = fields[fn][0]
+                if isinstance(nv, (bytes, bytearray)):
+                    d = nv.decode('utf-8', errors='ignore')
+                    if d and len(d) < 60 and not d.startswith("0OuCe") and not d.startswith("eyJ") and all(c.isprintable() or c in '\u200b\u200c\u200d' for c in d):
+                        return d
+    except: pass
     return None
-
 
 def Uaa():
     versions = ['5.0.1B2','5.1.0P1','5.2.0B1']
     models = ['SM-A125F','Redmi 9A','POCO M3']
-    android = random.choice(['11','12','13'])
-    return f"GarenaMSDK/{random.choice(versions)}({random.choice(models)};Android {android};en-US;USA;)"
-
+    return f"GarenaMSDK/{random.choice(versions)}({random.choice(models)};Android {random.choice(['11','12','13'])};en-US;USA;)"
 
 Hr = {
     'User-Agent': Uaa(), 'Connection': "Keep-Alive", 'Accept-Encoding': "gzip",
@@ -661,14 +498,13 @@ Hr = {
     'X-Unity-Version': "2018.4.11f1", 'X-GA': "v1 1", 'ReleaseVersion': ob
 }
 
-
-def get_random_color():
-    return random.choice(["[FF0000]","[00FF00]","[0000FF]","[FFFF00]","[FF00FF]","[00FFFF]","[FFFFFF]","[FFA500]","[FFC0CB]","[FFD700]"])
-
-
 def xBunnEr():
-    return int(random.choice(['902000016','902000031','902000011','902000065','902000204','902000192','902000191','902000179','902000133','902045001','902038023','902048004','902039014','902000063','902000306','902047009']))
-
+    """Returns working Avatar IDs as Integer"""
+    return random.choice([
+        902000011, 902000013, 902047016, 902049015,
+        902000154, 902000127, 902000207, 902000305,
+        902037031, 902042011, 902053016, 902053018
+    ])
 
 def update_bot_info(uid, **kwargs):
     with bot_lock:
@@ -676,7 +512,6 @@ def update_bot_info(uid, **kwargs):
             bot_status[uid] = {"guest_uid": uid, "account_uid": "Loading...", "status": "🔄 Initializing...",
                 "last_squad_id": "None", "last_active": "N/A", "squad_active": False}
         bot_status[uid].update(kwargs)
-
 
 def update_active_account(uid, **kwargs):
     with active_lock:
@@ -692,58 +527,48 @@ def update_active_account(uid, **kwargs):
             'squad_members': kwargs.get('squad_members', '0/0')
         })
 
-
 def remove_active_account(uid):
     global online_count
     with active_lock:
         active_accounts[:] = [a for a in active_accounts if a['uid'] != uid]
         if online_count > 0: online_count -= 1
 
-
 def Fix_PackEt(parsed_results):
-    result_dict = {}
-    for result in parsed_results:
-        field_data = {'wire_type': result.wire_type}
-        if result.wire_type in ["varint", "string", "bytes"]: field_data['data'] = result.data
-        elif result.wire_type == 'length_delimited': field_data["data"] = Fix_PackEt(result.data.results)
-        result_dict[result.field] = field_data
-    return result_dict
-
+    rd = {}
+    for r in parsed_results:
+        fd = {'wire_type': r.wire_type}
+        if r.wire_type in ["varint", "string", "bytes"]: fd['data'] = r.data
+        elif r.wire_type == 'length_delimited': fd["data"] = Fix_PackEt(r.data.results)
+        rd[r.field] = fd
+    return rd
 
 def DeCode_PackEt(input_text):
-    try:
-        return json.dumps(Fix_PackEt(Parser().parse(input_text)))
-    except Exception:
-        return None
-
+    try: return json.dumps(Fix_PackEt(Parser().parse(input_text)))
+    except Exception: return None
 
 async def EnC_Vr(N):
-    if N<0: return b''
+    if N < 0: return b''
     H = []
     while True:
-        RedZed = N & 0x7F; N >>= 7
-        if N: RedZed |= 0x80
-        H.append(RedZed)
+        b = N & 0x7F; N >>= 7
+        if N: b |= 0x80
+        H.append(b)
         if not N: break
     return bytes(H)
-
 
 async def CrEaTe_VarianT(fn, val):
     return await EnC_Vr((fn<<3)|0) + await EnC_Vr(val)
 
-
 async def CrEaTe_LenGTh(fn, val):
-    ev = val.encode() if isinstance(val,str) else val
+    ev = val.encode() if isinstance(val, str) else val
     return await EnC_Vr((fn<<3)|2) + await EnC_Vr(len(ev)) + ev
-
 
 async def CrEaTe_ProTo(fields):
     packet = bytearray()
     for f, v in fields.items():
         if isinstance(f, str):
             try: f = int(f)
-            except (ValueError, TypeError): continue
-
+            except: continue
         if isinstance(v, list):
             for item in v:
                 if isinstance(item, dict):
@@ -758,29 +583,22 @@ async def CrEaTe_ProTo(fields):
             packet.extend(await CrEaTe_LenGTh(f, v))
     return bytes(packet)
 
-
 async def DecodE_HeX(H):
     F = str(hex(H))[2:]
-    return "0"+F if len(F)==1 else F
-
+    return "0" + F if len(F) == 1 else F
 
 async def EnC_PacKeT(HeX, K, V):
-    cipher = AES.new(K, AES.MODE_CBC, V)
-    return cipher.encrypt(pad(bytes.fromhex(HeX),16)).hex()
-
+    return AES.new(K, AES.MODE_CBC, V).encrypt(pad(bytes.fromhex(HeX), 16)).hex()
 
 async def GeneRaTePk(Pk, N, K, V):
     PkEnc = await EnC_PacKeT(Pk, K, V)
-    _ = await DecodE_HeX(len(PkEnc)//2)
+    _ = await DecodE_HeX(len(PkEnc) // 2)
     HeadEr = N+"000000" if len(_)==2 else N+"00000" if len(_)==3 else N+"0000" if len(_)==4 else N+"000"
-    return bytes.fromhex(HeadEr+_+PkEnc)
-
+    return bytes.fromhex(HeadEr + _ + PkEnc)
 
 async def encrypt_packet(packet_hex, key, iv):
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    packet_bytes = bytes.fromhex(packet_hex)
-    padded_packet = pad(packet_bytes, AES.block_size)
-    return cipher.encrypt(padded_packet).hex()
+    return cipher.encrypt(pad(bytes.fromhex(packet_hex), AES.block_size)).hex()
 
 # ================================================================
 #   BUNDLE / ANIMATION
@@ -788,66 +606,35 @@ async def encrypt_packet(packet_hex, key, iv):
 async def mahir_animation_packet(animation_id, key, iv):
     try:
         fields = {1: 88, 2: {1: {1: int(animation_id)}}}
-        proto_bytes = await CrEaTe_ProTo(fields)
-        packet_hex = proto_bytes.hex()
-        encrypted_packet = await encrypt_packet(packet_hex, key, iv)
-        packet_length = len(encrypted_packet) // 2
-        hex_length = format(packet_length, 'x')
-        final_packet = "051500" + "0" * (6 - len(hex_length)) + hex_length + encrypted_packet
-        return bytes.fromhex(final_packet)
+        packet_hex = (await CrEaTe_ProTo(fields)).hex()
+        encrypted = await encrypt_packet(packet_hex, key, iv)
+        pl = len(encrypted) // 2
+        hl = format(pl, 'x')
+        return bytes.fromhex("051500" + "0" * (6 - len(hl)) + hl + encrypted)
     except Exception as e:
-        console.print(f"[red]animation err: {e}[/red]")
-        return None
-
+        console.print(f"[red]animation err: {e}[/red]"); return None
 
 async def Mahir_bundle_packet(bundle_id, key, iv, region="bd"):
     try:
         fields = {1: 88, 2: {1: {1: bundle_id, 2: 1}, 2: 2}}
-        packet = await CrEaTe_ProTo(fields)
-        packet_hex = packet.hex()
-        encrypted = await encrypt_packet(packet_hex, key, iv)
-        header_length = len(encrypted) // 2
-        header_length_hex = await DecodE_HeX(header_length)
-
-        if region.lower() == "ind": packet_type = '0514'
-        elif region.lower() == "bd": packet_type = "0519"
-        else: packet_type = "0515"
-
-        if len(header_length_hex) == 2: final_header = f"{packet_type}000000"
-        elif len(header_length_hex) == 3: final_header = f"{packet_type}00000"
-        elif len(header_length_hex) == 4: final_header = f"{packet_type}0000"
-        elif len(header_length_hex) == 5: final_header = f"{packet_type}000"
-        else: final_header = f"{packet_type}000000"
-
-        return bytes.fromhex(final_header + header_length_hex + encrypted)
+        encrypted = await encrypt_packet((await CrEaTe_ProTo(fields)).hex(), key, iv)
+        hl = await DecodE_HeX(len(encrypted) // 2)
+        pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
+        fh = f"{pt}000000" if len(hl) == 2 else f"{pt}00000" if len(hl) == 3 else f"{pt}0000" if len(hl) == 4 else f"{pt}000" if len(hl) == 5 else f"{pt}000000"
+        return bytes.fromhex(fh + hl + encrypted)
     except Exception as e:
-        console.print(f"[red]bundle err: {e}[/red]")
-        return None
-
+        console.print(f"[red]bundle err: {e}[/red]"); return None
 
 async def Mahir_bundle_packet_2(bundle_id, key, iv, region="bd"):
     try:
         fields = {1: 88, 2: {1: {1: bundle_id, 2: 2}, 2: 2}}
-        packet = await CrEaTe_ProTo(fields)
-        packet_hex = packet.hex()
-        encrypted = await encrypt_packet(packet_hex, key, iv)
-        header_length = len(encrypted) // 2
-        header_length_hex = await DecodE_HeX(header_length)
-
-        if region.lower() == "ind": packet_type = '0514'
-        elif region.lower() == "bd": packet_type = "0519"
-        else: packet_type = "0515"
-
-        if len(header_length_hex) == 2: final_header = f"{packet_type}000000"
-        elif len(header_length_hex) == 3: final_header = f"{packet_type}00000"
-        elif len(header_length_hex) == 4: final_header = f"{packet_type}0000"
-        elif len(header_length_hex) == 5: final_header = f"{packet_type}000"
-        else: final_header = f"{packet_type}000000"
-
-        return bytes.fromhex(final_header + header_length_hex + encrypted)
+        encrypted = await encrypt_packet((await CrEaTe_ProTo(fields)).hex(), key, iv)
+        hl = await DecodE_HeX(len(encrypted) // 2)
+        pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
+        fh = f"{pt}000000" if len(hl) == 2 else f"{pt}00000" if len(hl) == 3 else f"{pt}0000" if len(hl) == 4 else f"{pt}000" if len(hl) == 5 else f"{pt}000000"
+        return bytes.fromhex(fh + hl + encrypted)
     except Exception as e:
-        console.print(f"[red]bundle2 err: {e}[/red]")
-        return None
+        console.print(f"[red]bundle2 err: {e}[/red]"); return None
 
 # ================================================================
 #   SQUAD PACKETS
@@ -857,168 +644,151 @@ async def MAHIR_OPenSq(key, iv, region, version_):
         1: 1,
         2: {
             2: "\u0001", 3: 43, 4: 1, 5: "en",
-            8: [{1: "IDC2", 2: 171, 3: "BD"}],
-            9: 1,
+            8: [{1: "IDC2", 2: 171, 3: "BD"}], 9: 1,
             10: "rYUW\u0017\t\u0007NR\u000f\u0005\u0004\\W\u0002\u000fV\u0004TPQ\u0003\u000f\u0005\u0004]\u0005\u000b\u0000\u0002W\u0005\r\nVY\u0004\u0007\u0007\u0007\u0017\u0001\bNQ\fS\u0005\u000e\u0006\f\u0005\rT\u0002\r\u0000TS\u0007U\u0004X\u0006RY\u0005\u0003\u0003SW\u0000\u000eQ\u0000^\u0014\u0003\u0004JXS\u000f\u0000g{gqfePblEZJp{_xU\bmQW\f\u0007\u000f\u0015\u0007H\\U^CHXh@Ax`\u000f~\rPN~Nz\\\u001fr_ckPU\u000b\u0015\u0005\u0003Ekfp\u007fcY\u0001nWV\u0002\u0005azE~N\u0007HTg\u0007w}@\u0002{\t\u0013\u0001NeNP]DUf|]ugINs{\u0001\\rAgB_\u0004fA]\u0004\r\u001a\u0000HpOv\\\u0005|gS\u0019\\A\u007fWW\u0003\u007fTqFGi\u0004Qr\u0019dW\u0004\u0011\rD\u0002yeZ]A\u0016a\u0007Ungeg\u0007E\\P\u001b\u000b\u0004\u0005dd\ff\r\u000f\u0017\t\u000fNRyZd\u0012tZ\fe\u0007AGv\u007fw]{P\u001c\u007f\u000ff\u0005ZJK\u0004\u0005\u0014\u0001Jgq\u001frymsB\u0001\u000fd`\u001bj~[}\u0004SDZ|IxKB\u0000\n\u0011\u0002J^`tjYN\u0007WQdE[PQ\u0002_{VP`S\t\u007f\u001dP\n\u000f\u000f\u0015\u0004\u0004L{V\u0003@yP[rgJ{Hpk\u0001\u000bw\u0001Agt_\u0003HxPc\u000b\u0017\u0005E`y\ngWoy\u0006S{A\u001b``Y\u0002Xzw}dDWOKsg\t\u0013\u000eNf\u000e\\`\u0005AwJc\u0003BM\u0001^\u0000R\u0002Qoh]tbS~`G\r\u001a\u0004HibAQ\u000f^XNt~kDUWaeaNqcLQ]Py[G\u0004",
             11: 1, 13: 1,
             14: {
                 1: "08FAA33B035B3F16020859055555000200030001000000004AFA7572105C674946762514220104186fa2e8770e748c3f6a68ed75000000ff18470f0bcacfa16d",
                 2: 681,
                 3: {14: {11: "1106064f50055401030f03020403060155070d01540e060e020607540706030354530f041003064d715c46434b1f061f031e1205034a1c40677c5f554775755f504e677446185b584901534144685b67620f", 0: 72}},
-                4: "x\\\\R", 6: 13, 7: {2: 80},
-                8: version_, 9: 2, 10: 1,
+                4: "x\\\\R", 6: 13, 7: {2: 80}, 8: version_, 9: 2, 10: 1,
                 11: "03626253513677542b504e4635416456324b796f566c576a326567507844414c33507138513031762b66536c626a587648434e3348414e376c472b72474637794165676e72436b553671626b694538706f534e5a582b2f7a44675a547475465650542b384d69565a507151312b444b53576f786f6d592f7156394f76755254482b7154486a78486f664169734267564970454d454e6b4c326a4763445a4a5176416d687947356b7669564e544d71515745754b32324d4e384e4931424d437445395532415156694b667948314574412b32644536464b53773132554155596363372b7753652b66676c393742756544446a58496d6e35666d45444a51535948326644484c5650676755472f51794b776e77545151324a505265352f72314830616d374264424f556b712f523246734d635475516d47364c684a547a4379345774444245795268305754366f68532f785a48736a4c7a4366506378372f386a534133352b67787642657450397a4f6f463639344945386e6e77336b507344357a6e6337593649776b4142435761776f6d572b6948594f5939686d647632706975584168416d6d6a74496f5945444c6e506e5738616f7153304f74486b732f5a3953543252447345507a3343655438774e6874756d57634b4438585445376649386c305173726a772f4a57514f76394b50307257644538593375422f2b495836757675452b487a6a4853466c75726f33515432536567595758535854714674495a61454d476c51314b7639666c59525539465047366c30663045314f7a2b2b36324339644b664c4d39315a782f6f625938726a6e682b77524a3962636e544e41715466486f72354b714d3d"
             },
             19: 329, 21: "374f5219", 24: {1: 21}, 27: "a_6534489873065906362"
         }
     }
-    proto = await CrEaTe_ProTo(fields)
-    return await GeneRaTePk(proto.hex(), '0515', key, iv)
-
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
 
 async def MAHIR_cHSq22(Nu, bot_uid, key, iv, region):
     fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 1, 5: "\x1a", 8: 1}}
-    if region.lower() == "ind": ptype = '0514'
-    elif region.lower() == "bd": ptype = "0519"
-    else: ptype = "0515"
-    proto = await CrEaTe_ProTo(fields)
-    return await GeneRaTePk(proto.hex(), ptype, key, iv)
+    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
-
-async def MAHIR_World_Recruit(target_id, key, iv):
+async def MAHIR_World_Recruit(tid, key, iv):
     try:
-        fields = {1: 66, 2: {1: int(target_id), 5: {}, 9: "", 10: 1}}
-        proto = await CrEaTe_ProTo(fields)
-        return await GeneRaTePk(proto.hex(), '0515', key, iv)
-    except Exception as e:
-        console.print(f"❌ World Recruit 1 Error: {e}")
-        return None
+        fields = {1: 66, 2: {1: int(tid), 5: {}, 9: "", 10: 1}}
+        return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
+    except: return None
 
-
-async def MAHIR_World_Recruit2(target_id, key, iv):
+async def MAHIR_World_Recruit2(tid, key, iv):
     try:
-        fields = {1: 66, 2: {1: int(target_id), 5: "\u0007", 9: {}, 10: 1}}
-        proto = await CrEaTe_ProTo(fields)
-        return await GeneRaTePk(proto.hex(), '0515', key, iv)
-    except Exception as e:
-        console.print(f"❌ World Recruit 2 Error: {e}")
-        return None
-
+        fields = {1: 66, 2: {1: int(tid), 5: "\u0007", 9: {}, 10: 1}}
+        return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
+    except: return None
 
 async def MAHIR_LeaveSquad(key, iv, region, bot_own_id):
     fields = {1: 7, 2: {1: int(bot_own_id)}}
-    if region.lower() == "ind": ptype = '0514'
-    elif region.lower() == "bd": ptype = "0519"
-    else: ptype = "0515"
-    proto = await CrEaTe_ProTo(fields)
-    return await GeneRaTePk(proto.hex(), ptype, key, iv)
+    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
-
+# ================================================================
+# ⭐ FIXED: MAHIR_SendSquadMsg (using mahir.py reference)
+# ================================================================
 async def MAHIR_SendSquadMsg(squad_owner, message, bot_uid, key, iv):
+    """
+    Send message in squad chat using correct packet structure.
+    Reference: mahir.py (working version)
+    """
     try:
-        timestamp = int(datetime.now().timestamp())
-        avatar = xBunnEr()
+        if not squad_owner or not bot_uid:
+            return None
+        
+        # Ensure they are int
+        squad_owner = int(squad_owner)
+        bot_uid = int(bot_uid)
+        avatar_id = xBunnEr()  # sync function
+        if not isinstance(avatar_id, int):
+            avatar_id = 902000011
+        
+        msg_str = str(message)
+        preview = msg_str[:15] if len(msg_str) > 15 else msg_str
+        
         fields = {
             1: 1,
             2: {
-                1: int(squad_owner), 2: int(bot_uid), 3: 0,
-                4: message, 5: timestamp, 7: 6,
+                1: squad_owner,
+                2: bot_uid,
+                3: 0,
+                4: msg_str,
+                5: int(datetime.now().timestamp()),
+                7: 6,
                 9: {
-                    1: f"[C][FF0000]{message[:15]}", 2: avatar, 3: 2, 4: 330, 5: 800000304,
-                    6: 66, 7: 66, 8: "MAHIR", 9: 66, 10: 1, 11: 1,
+                    1: f"[C][FF0000]{preview}",
+                    2: avatar_id,
+                    3: 2,
+                    4: 330,
+                    5: 800000304,
+                    6: 66,
+                    7: 66,
+                    8: "MAHIR",
+                    9: 66,
+                    10: 1,
+                    11: 1,
                     13: {1: 68, 2: 67},
-                    14: {1: 1158053040, 2: 8,
-                         3: b"\x10\x15\x08\x0A\x0B\x15\x0C\x0F\x11\x04\x07\x02\x03\x0D\x0E\x12\x01\x05\x06"}
+                    14: {
+                        1: 1158053040,
+                        2: 8,
+                        3: b"\x10\x15\x08\x0A\x0B\x15\x0C\x0F\x11\x04\x07\x02\x03\x0D\x0E\x12\x01\x05\x06"
+                    }
                 },
-                10: "en", 13: {3: 1}, 14: {}
+                10: "en",
+                13: {3: 1},
+                14: {}
             }
         }
         proto = await CrEaTe_ProTo(fields)
         pk = "080112" + (await EnC_Vr(len(proto))).hex() + proto.hex()
         return await GeneRaTePk(pk, '1215', key, iv)
     except Exception as e:
-        console.print(f"[bold red]❌ Squad msg error: {e}[/bold red]")
+        console.print(f"[red]Squad msg err: {e}[/red]")
         return None
 
-
 async def MAHIR_OpenSquadChat(squad_id, chat_code, key, iv):
+    """Open squad chat using chat_code"""
     try:
-        fields = {1: 3, 2: {1: int(squad_id), 2: 3, 3: "en", 4: str(chat_code)}}
+        squad_id = int(squad_id)
+        fields = {1: 3, 2: {1: squad_id, 2: 3, 3: "en", 4: str(chat_code)}}
         proto = await CrEaTe_ProTo(fields)
         pk = "080112" + (await EnC_Vr(len(proto))).hex() + proto.hex()
         return await GeneRaTePk(pk, '1215', key, iv)
     except Exception as e:
-        console.print(f"[bold red]❌ OpenSquadChat error: {e}[/bold red]")
+        console.print(f"[red]OpenSquadChat err: {e}[/red]")
         return None
-
 
 async def Emote_k(TarGeT, idT, K, V, region):
     try:
-        bot_self_id = int(BOT_OWN_ID) if 'BOT_OWN_ID' in globals() else 0
-    except Exception:
+        bot_self_id = int(BOT_OWN_ID) if 'BOT_OWN_ID' in globals() and globals().get('BOT_OWN_ID') else 0
+    except:
         bot_self_id = 0
-    fields = {
-        1: 21,
-        2: {
-            1: bot_self_id,
-            2: 909000001,
-            5: {1: int(TarGeT), 3: int(idT)}
-        }
-    }
-    if region.lower() == "ind": packet = '0514'
-    elif region.lower() == "bd": packet = "0519"
-    else: packet = "0515"
-    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), packet, K, V)
+    fields = {1: 21, 2: {1: bot_self_id, 2: 909000001, 5: {1: int(TarGeT), 3: int(idT)}}}
+    if region.lower() == "ind": pkt = '0514'
+    elif region.lower() == "bd": pkt = "0519"
+    else: pkt = "0515"
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pkt, K, V)
 
+async def KickTarget(target_uid, key, iv):
+    fields = {1: 35, 2: {1: int(target_uid)}}
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
 
 # ================================================================
 #   HELP MENU
 # ================================================================
 async def build_help_menu(nickname="User", bot_uid="0"):
     def pg(bdr, ttl_col, ttl, items):
-        out  = f"[b][c][{bdr}]┌───────────────┐\n"
-        out += f"[{ttl_col}][b][c]●  {ttl} ●\n"
-        out += f"[{bdr}][b][c]└───────────────┘\n"
+        out = f"[b][c][{bdr}]┌───────────────┐\n[{ttl_col}][b][c]●  {ttl} ●\n[{bdr}][b][c]└───────────────┘\n"
         CLR = [("ff6600","ffd700","ffff55","00ffcc"),("aaff00","ff9944","ffffff","55ff99"),
                ("00ffaa","ff66bb","aaffff","ff88ff"),("00ccff","ffee88","ffaa44","44ddff")]
-        for i, (desc, cmd) in enumerate(items):
+        for i, (d, c) in enumerate(items):
             bc, dc, ac, cc = CLR[i % 4]
-            out += f"\n[{bc}]◆ [{dc}][b]{desc}[/b] [{ac}]→  [{cc}]{cmd}"
+            out += f"\n[{bc}]◆ [{dc}][b]{d}[/b] [{ac}]→  [{cc}]{c}"
         out += f"\n\n[{bdr}][b][c]◆───────────────◆"
         return out
-
-    pages = []
-    safe_name = nickname if nickname and nickname != "Unknown" else "User"
-    pages.append(
-        f"[FF0000][b][c]◉\n"
-        f"[b][c][0dffd0]Hey {safe_name} Welcome To [ffffff]MAHIR [0dffd0] BOT\n"
-        f"[FF0000]• [0dffd0]আপনার কি সাহায্য লাগবে?\n"
-        f"[FF0000]• [0dffd0]আপনি কি বট কিনতে চান?\n"
-        f"[FF0000]• [0dffd0]নাকি বট ব্যবহার করতে চান?\n"
-        f"[FF0000]• [0dffd0]বট কিনতে চাইলে কন্টাক্ট করুন\n"
-        f"[FF0000]• [0dffd0]বট চালাতে চাইলে [ffffff]help [0dffd0]লিখুন\n"
-        f"[FF0000][b][c]◉\n\n"
-        f"[C][B][0dffd0]+------ 📊 PLAYER PROFILE ------+\n"
-        f"[C][0dffd0] » Name        : [ffffff]{safe_name}\n"
-        f"[C][0dffd0] » UID         : [ffffff]{bot_uid}\n"
-        f"[C][B][0dffd0]+--------------------------------+"
-    )
-    pages.append(pg("ff9900", "ffee00", "GENERAL", [("Help Menu","help / hello"),("Welcome Message","HI"),("Time & Uptime",".time"),("My Info","my id")]))
-    pages.append(pg("00aaff", "00eeff", "SHOP & DOWNLOAD", [("Bot Store","/store"),("Android App","/app"),("Owner Info","MAHIR"),("Version",".ffv")]))
-    pages.append(pg("ff44aa", "ff99dd", "SQUAD ACTIONS", [("Squad Invite","/inv"),("Auto Recruit","st"),("Squad Size","/5  /6"),("Leave Squad","/exit")]))
-    pages.append(
-        f"[b][c][FF1493]╔═══════════════════════╗\n"
-        f"[b][c][FF1493]║      👑 OWNER INFO 👑      ║\n"
-        f"[b][c][FF1493]╠═══════════════════════╣\n"
-        f"[b][c][FFFFFF]║ 👤 Name     : [FFD700]MAHIR\n"
-        f"[b][c][FFFFFF]║ 📱 Telegram : [00FFFF]@MAHIR0208\n"
-        f"[b][c][FFFFFF]║ 🎵 TikTok   : [00FFFF]@MAHIR__222\n"
-        f"[b][c][FFFFFF]║ 🌐 Website  : [00FFFF]mahir.xo.je\n"
-        f"[b][c][FF1493]╠═══════════════════════╣\n"
-        f"[b][c][FFD700]║  ⚡ MAHIR VIP SYSTEM ONLINE ✔\n"
-        f"[b][c][FFD700]║  🛡️ Thank You For Using 🛡️\n"
-        f"[b][c][FF1493]╚═══════════════════════╝"
-    )
+    sn = nickname if nickname and nickname != "Unknown" else "User"
+    pages = [f"[FF0000][b][c]◉\n[b][c][0dffd0]Hey {sn} Welcome To [ffffff]MAHIR [0dffd0] BOT\n[FF0000]• [0dffd0]বট চালাতে চাইলে [ffffff]help [0dffd0]লিখুন\n[FF0000][b][c]◉\n\n[C][B][0dffd0]+------ 📊 PLAYER PROFILE ------+\n[C][0dffd0] » Name        : [ffffff]{sn}\n[C][0dffd0] » UID         : [ffffff]{bot_uid}\n[C][B][0dffd0]+--------------------------------+"]
+    pages.append(pg("ff9900", "ffee00", "GENERAL", [("Help Menu","help / hello"),("Welcome","HI"),("Time",".time"),("My Info","my id")]))
+    pages.append(pg("00aaff", "00eeff", "SHOP", [("Store","/store"),("App","/app"),("Owner","MAHIR"),("Version",".ffv")]))
+    pages.append(pg("ff44aa", "ff99dd", "SQUAD", [("Invite","/inv"),("Recruit","st"),("Size","/5  /6"),("Leave","/exit")]))
+    pages.append(f"[b][c][FF1493]╔═══════════════════════╗\n[b][c][FF1493]║      👑 OWNER INFO 👑      ║\n[b][c][FF1493]╠═══════════════════════╣\n[b][c][FFFFFF]║ 👤 Name     : [FFD700]MAHIR\n[b][c][FFFFFF]║ 📱 Telegram : [00FFFF]@MAHIR0208\n[b][c][FFFFFF]║ 🎵 TikTok   : [00FFFF]@MAHIR__222\n[b][c][FFFFFF]║ 🌐 Website  : [00FFFF]mahir.xo.je\n[b][c][FF1493]╚═══════════════════════╝")
     return pages
 
 # ================================================================
@@ -1032,11 +802,9 @@ async def GeNeRaTeAccAccess(uid, password):
         async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
             async with session.post(url, headers=headers, data=data) as resp:
                 if resp.status != 200: return None, None
-                data = await resp.json()
-                return data.get("open_id"), data.get("access_token")
-    except Exception:
-        return None, None
-
+                d = await resp.json()
+                return d.get("open_id"), d.get("access_token")
+    except: return None, None
 
 def encode_varint(value):
     result = []
@@ -1047,7 +815,6 @@ def encode_varint(value):
         result.append(byte)
         if not value: break
     return bytes(result)
-
 
 def create_proto(fields):
     packet = bytearray()
@@ -1073,14 +840,12 @@ def create_proto(fields):
             packet.extend(encode_varint(len(value))); packet.extend(value)
     return bytes(packet)
 
-
 def encrypt_aes(hex_data: str) -> str:
     key = bytes([89, 103, 38, 116, 99, 37, 68, 69, 117, 104, 54, 37, 90, 99, 94, 56])
     iv  = bytes([54, 111, 121, 90, 68, 114, 50, 50, 69, 51, 121, 99, 104, 106, 77, 37])
     return AES.new(key, AES.MODE_CBC, iv).encrypt(pad(bytes.fromhex(hex_data), AES.block_size)).hex()
 
-
-async def EncRypTMajoRLoGin(open_id: str, access_token: str, version_: str) -> bytes:
+async def EncRypTMajoRLoGin(open_id, access_token, version_):
     fields = {
         3: str(datetime.now())[:-7], 4: "free fire", 5: 1, 7: str(version_),
         8: "Android OS 11 / API-30 (RP1A.200720.011/230921V810)", 9: "Handheld",
@@ -1104,75 +869,65 @@ async def EncRypTMajoRLoGin(open_id: str, access_token: str, version_: str) -> b
     }
     return bytes.fromhex(encrypt_aes(create_proto(fields).hex()))
 
-
 async def MajorLogin(payload):
-    global login_url
     base = login_url.rstrip("/")
     if not base.startswith(("http://", "https://")): base = "https://" + base
     url = f"{base}/MajorLogin"
     Hr["X-GA-SV"] = str(int(time.time()))
     Hr["ReleaseVersion"] = ob
     ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
+    ssl_context.check_hostname = False; ssl_context.verify_mode = ssl.CERT_NONE
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=payload, headers=Hr, ssl=ssl_context) as response:
-            if response.status != 200: return None
-            raw = await response.read()
+        async with session.post(url, data=payload, headers=Hr, ssl=ssl_context) as r:
+            if r.status != 200: return None
+            raw = await r.read()
             return raw[64:] if len(raw) > 64 else raw
-
 
 async def GetLoginData(base_url, payload, token):
     url = f"{base_url}/GetLoginData"
     ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
+    ssl_context.check_hostname = False; ssl_context.verify_mode = ssl.CERT_NONE
     Hr['Authorization'] = f"Bearer {token}"
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=payload, headers=Hr, ssl=ssl_context) as response:
-            if response.status == 200: return await response.read()
+        async with session.post(url, data=payload, headers=Hr, ssl=ssl_context) as r:
+            if r.status == 200: return await r.read()
             return None
 
-
 async def DecRypTMajoRLoGin(MajoRLoGinResPonsE):
-    class ParsedMajorLogin:
-        def __init__(self, fields):
-            self.account_uid = int(fields.get(1, 0))
-            self.region = str(fields.get(2, ""))
-            self.token = str(fields.get(8, ""))
-            self.url = str(fields.get(10, ""))
-            self.timestamp = int(fields.get(21, 0))
-            raw_key = fields.get(22, b"")
-            if isinstance(raw_key, str):
-                try: self.key = bytes.fromhex(raw_key.replace(" ", ""))
-                except: self.key = raw_key.encode()
-            else: self.key = bytes(raw_key)
-            raw_iv = fields.get(23, b"")
-            if isinstance(raw_iv, str):
-                try: self.iv = bytes.fromhex(raw_iv.replace(" ", ""))
-                except: self.iv = raw_iv.encode()
-            else: self.iv = bytes(raw_iv)
-
-    def _dec_vr(buf, off):
+    class P:
+        def __init__(self, f):
+            self.account_uid = int(f.get(1, 0)); self.region = str(f.get(2, ""))
+            self.token = str(f.get(8, "")); self.url = str(f.get(10, ""))
+            self.timestamp = int(f.get(21, 0))
+            rk = f.get(22, b"")
+            if isinstance(rk, str):
+                try: self.key = bytes.fromhex(rk.replace(" ", ""))
+                except: self.key = rk.encode()
+            else: self.key = bytes(rk)
+            riv = f.get(23, b"")
+            if isinstance(riv, str):
+                try: self.iv = bytes.fromhex(riv.replace(" ", ""))
+                except: self.iv = riv.encode()
+            else: self.iv = bytes(riv)
+    def dv(buf, off):
         res, sh, st = 0, 0, off
         while True:
-            if off >= len(buf): raise IndexError("Out")
+            if off >= len(buf): raise IndexError
             b = buf[off]; off += 1
             res += (b & 0x7F) << sh; sh += 7
             if b < 0x80: break
         return res, off - st
-
-    def _dec_proto(buf):
+    def dp(buf):
         off, parts, blen = 0, [], len(buf)
         try:
             while off < blen:
-                it, vl = _dec_vr(buf, off); off += vl
+                it, vl = dv(buf, off); off += vl
                 wt, fn = it & 7, it >> 3
-                if wt == 0: val, vl = _dec_vr(buf, off); off += vl
+                if wt == 0: val, vl = dv(buf, off); off += vl
                 elif wt == 2:
-                    length, vl = _dec_vr(buf, off); off += vl
+                    length, vl = dv(buf, off); off += vl
                     if off + length > blen: return None
-                    val = buf[off:off + length]; off += length
+                    val = buf[off:off+length]; off += length
                 elif wt == 5:
                     if off + 4 > blen: return None
                     val = struct.unpack_from("<I", buf, off)[0]; off += 4
@@ -1183,90 +938,76 @@ async def DecRypTMajoRLoGin(MajoRLoGinResPonsE):
                 parts.append((fn, wt, val))
             return parts
         except: return None
-
-    def _to_dict(parts):
-        res = {}
+    def td(parts):
+        r = {}
         for fn, wt, v in parts:
             if wt == 2:
                 try: val = v.decode("utf-8")
                 except: val = v
             else: val = v
-            res[fn] = val
-        return res
-
+            r[fn] = val
+        return r
     buf = MajoRLoGinResPonsE
     try:
         c = AES.new(b'Yg&tc%DEuh6%Zc^8', AES.MODE_CBC, b'6oyZDr22E3ychjM%')
         buf = unpad(c.decrypt(buf), AES.block_size)
     except: pass
-
-    parsed = _dec_proto(buf)
-    if parsed:
-        d = _to_dict(parsed)
-        if 1 in d or 8 in d or 10 in d: return ParsedMajorLogin(d)
-
+    p = dp(buf)
+    if p:
+        d = td(p)
+        if 1 in d or 8 in d or 10 in d: return P(d)
     for o in range(len(buf)):
-        parsed = _dec_proto(buf[o:])
-        if parsed:
-            d = _to_dict(parsed)
-            if 1 in d or 8 in d or 10 in d: return ParsedMajorLogin(d)
-
-    return ParsedMajorLogin({})
-
+        p = dp(buf[o:])
+        if p:
+            d = td(p)
+            if 1 in d or 8 in d or 10 in d: return P(d)
+    return P({})
 
 def create_auth_token_chat(account_id, jwt_token, timestamp, key, iv):
     try:
         K = bytes.fromhex(key) if isinstance(key, str) else key
-        V = bytes.fromhex(iv)  if isinstance(iv,  str) else iv
+        V = bytes.fromhex(iv)  if isinstance(iv, str) else iv
         ct = AES.new(K, AES.MODE_CBC, V).encrypt(pad(jwt_token.encode('utf-8'), AES.block_size))
         header = bytes.fromhex('6d19') + int(account_id).to_bytes(8, 'big') + int(timestamp).to_bytes(4, 'big') + len(ct).to_bytes(4, 'big')
         return (header + ct).hex()
     except Exception as e:
         print(f"❌ CHAT AUTH: {e}"); return None
 
-
 def create_auth_token_online(account_uid, token, kts, key, iv):
     try:
         K = bytes.fromhex(key) if isinstance(key, str) else key
-        V = bytes.fromhex(iv)  if isinstance(iv,  str) else iv
+        V = bytes.fromhex(iv)  if isinstance(iv, str) else iv
         enc_token = AES.new(K, AES.MODE_CBC, V).encrypt(pad(token.encode("utf-8"), 16))
         opcode = bytes.fromhex("830c")
         return (opcode + int(account_uid).to_bytes(8, byteorder="big") + int(kts).to_bytes(4, byteorder="big") + len(enc_token).to_bytes(8, byteorder="big") + enc_token).hex()
     except Exception as e:
         print(f"❌ ONLINE AUTH: {e}"); return None
 
-
 # ================================================================
-#   BATCH ACCOUNT LOADER (with STOP support)
+#   BATCH LOADER
 # ================================================================
 async def batch_account_loader():
     global total_accounts
-    active_bots = {}
-    bot_tasks   = {}
-    last_passwords = {}
-
-    console.print("[bold cyan]🚀 Batch Account Loader চালু হয়েছে...[/bold cyan]")
-
+    active_bots, bot_tasks, last_passwords = {}, {}, {}
+    console.print("[bold cyan]🚀 Batch Account Loader started...[/bold cyan]")
     while True:
         try:
             accounts = load_accounts()
             total_accounts = len(accounts)
             stopped = is_stopped()
 
-            # ── Password change detection ──
             for uid, pwd in accounts.items():
                 if uid in last_passwords and last_passwords[uid] != pwd:
-                    console.print(f"[bold yellow]🔑 UID {uid} password changed → restarting[/bold yellow]")
+                    console.print(f"[bold yellow]🔑 UID {uid} pwd changed → restart[/bold yellow]")
                     if uid in active_bots:
                         try: active_bots[uid].is_running = False
-                        except Exception: pass
+                        except: pass
                         del active_bots[uid]
                     if uid in bot_tasks:
                         if not bot_tasks[uid].done(): bot_tasks[uid].cancel()
                         del bot_tasks[uid]
                 last_passwords[uid] = pwd
 
-            # ── Launch new (only if NOT stopped) ──
             if not stopped:
                 for uid, pwd in accounts.items():
                     with running_bots_lock: running_bots.add(uid)
@@ -1274,72 +1015,56 @@ async def batch_account_loader():
                     if uid in bot_tasks: del bot_tasks[uid]
                     if uid in active_bots:
                         try: active_bots[uid].is_running = False
-                        except Exception: pass
+                        except: pass
                         del active_bots[uid]
-
                     bot = SquadBot(uid=uid, password=pwd, server='bd', index=len(bot_tasks)+1)
                     active_bots[uid] = bot
-                    task = asyncio.create_task(bot.keep_online_forever())
-                    bot_tasks[uid] = task
+                    bot_tasks[uid] = asyncio.create_task(bot.keep_online_forever())
                     console.print(f"[bold green]✨ UID {uid} → Launched[/bold green]")
                     await asyncio.sleep(0.05)
             else:
-                # 🛑 Kill all running bots
                 for uid in list(bot_tasks.keys()):
                     try:
-                        if uid in active_bots:
-                            active_bots[uid].is_running = False
-                        if not bot_tasks[uid].done():
-                            bot_tasks[uid].cancel()
-                    except Exception: pass
+                        if uid in active_bots: active_bots[uid].is_running = False
+                        if not bot_tasks[uid].done(): bot_tasks[uid].cancel()
+                    except: pass
                     remove_active_account(uid)
                     with running_bots_lock: running_bots.discard(uid)
                     del bot_tasks[uid]
                     if uid in active_bots: del active_bots[uid]
 
-            # ── Crash detect (only if NOT stopped) ──
             if not stopped:
                 for uid in list(bot_tasks.keys()):
                     if bot_tasks[uid].done():
                         try: exc = bot_tasks[uid].exception()
-                        except Exception: exc = None
+                        except: exc = None
                         if exc: console.print(f"[bold red]⚠️ UID {uid} crashed → retry[/bold red]")
-                        else:   console.print(f"[bold yellow]⚠️ UID {uid} ended → retry[/bold yellow]")
                         if uid in active_bots:
                             try: active_bots[uid].is_running = False
-                            except Exception: pass
+                            except: pass
                             del active_bots[uid]
                         del bot_tasks[uid]
-
                 for uid in list(bot_tasks.keys()):
                     if uid not in accounts:
-                        console.print(f"[bold red]🗑️ UID {uid} removed → stopping[/bold red]")
+                        console.print(f"[bold red]🗑️ UID {uid} removed → stop[/bold red]")
                         if uid in active_bots:
                             try: active_bots[uid].is_running = False
-                            except Exception: pass
+                            except: pass
                             del active_bots[uid]
                         if not bot_tasks[uid].done(): bot_tasks[uid].cancel()
                         del bot_tasks[uid]
                         with running_bots_lock: running_bots.discard(uid)
                         last_passwords.pop(uid, None)
 
-            # ── Status ──
-            if stopped:
-                console.print(f"[bold red]🛑 STOPPED — {len(accounts)} accounts idle[/bold red]", end="\r")
-            elif accounts:
-                console.print(f"[dim]📊 Active: {len(bot_tasks)}/{len(accounts)} accounts[/dim]", end="\r")
-
+            if stopped: console.print(f"[bold red]🛑 STOPPED — {len(accounts)} idle[/bold red]", end="\r")
+            elif accounts: console.print(f"[dim]📊 Active: {len(bot_tasks)}/{len(accounts)}[/dim]", end="\r")
         except Exception as e:
             console.print(f"[bold red]Loader Err: {e}[/bold red]")
-
         await asyncio.sleep(2)
-
 
 def ResTarTinG():
     console.print("[bold yellow]♻️ Restarting...[/bold yellow]")
-    time.sleep(0.5)
-    os.execl(sys.executable, sys.executable, *sys.argv)
-
+    time.sleep(0.5); os.execl(sys.executable, sys.executable, *sys.argv)
 
 def AuTo_ResTartinG():
     while True:
@@ -1347,57 +1072,57 @@ def AuTo_ResTartinG():
         console.print("[bold red]⚠️ Auto restart...[/bold red]")
         ResTarTinG()
 
-
 # ================================================================
-#   SQUAD BOT CLIENT
+#   SQUAD BOT CLIENT (FIXED)
 # ================================================================
 class SquadBot:
     def __init__(self, uid, password, server='bd', index=0):
-        self.uid = uid; self.password = password; self.server = server; self.index = index
+        self.uid, self.password, self.server, self.index = uid, password, server, index
         self.is_running = True
-        self.online_writer = None; self.chat_writer = None; self.reader = None
-        self.key = None; self.iv = None; self.region = None; self.tasks = []
-        self.is_online = False; self.Nm = "Unknown"; self.bot_uid = None
+        self.online_writer = self.chat_writer = self.reader = None
+        self.key = self.iv = self.region = None
+        self.tasks = []
+        self.is_online = False
+        self.Nm = "Unknown"
+        self.bot_uid = None
         self.chat_reader = None
         self.squad_created = False
         self.squad_members = set()
         self.member_names = {}
-        self.current_squad_id = None
-        self.current_chat_code = None
-        self.seen_recreate_ts = 0
-        self.seen_restart_ts = 0
+        self.current_squad_id = self.current_chat_code = None
+        self.seen_recreate_ts = self.seen_restart_ts = 0
         self.squad_created_at = 0
-        self.last_recruit_at = 0
-        self.last_bundle_at = 0
+        self.last_recruit_at = self.last_bundle_at = 0
         self.last_emote_on_join_at = 0
         self.jwt_token = None
         self._recruit_lock = asyncio.Lock()
         self._bundle_lock = asyncio.Lock()
         self._recreate_lock = asyncio.Lock()
         self._animation_task = None
+        self._self_emote_task = None
         update_bot_info(self.uid, status="🔄 Initializing...", squad_active=False)
 
     async def _send_emote_on_join(self, target_uid):
         try:
             with web_config_lock:
                 enabled = web_config.get("auto_emote_on_join", True)
-            if not enabled: return False
+                delay = float(web_config.get("emote_join_delay_sec", 0.5))
+                pool = list(web_config.get("join_emote_pool", DEFAULT_JOIN_EMOTES))
+            if not enabled or not pool: return False
             if not self.online_writer or not self.bot_uid: return False
-
             global BOT_OWN_ID
             try: BOT_OWN_ID = int(self.bot_uid)
-            except Exception: pass
-
-            await asyncio.sleep(0.5)
-            emote_id = random.choice(JOIN_EMOTE_POOL)
+            except: pass
+            await asyncio.sleep(max(0.05, delay))
+            emote_id = random.choice(pool)
             pkt = await Emote_k(int(target_uid), int(emote_id), self.key, self.iv, self.region or "bd")
             if pkt and self.online_writer and not self.online_writer.is_closing():
                 self.online_writer.write(pkt); await self.online_writer.drain()
                 self.last_emote_on_join_at = time.time()
-                console.print(f"[bold magenta]🎭 [{self.uid}] Join Emote → {target_uid} (id={emote_id})[/bold magenta]")
+                console.print(f"[bold magenta]🎭 [{self.uid}] Join Emote → {target_uid} (id={emote_id}, delay={delay}s)[/bold magenta]")
                 return True
         except Exception as e:
-            console.print(f"[bold yellow]⚠ [{self.uid}] Join emote err: {e}[/bold yellow]")
+            console.print(f"[yellow]⚠ [{self.uid}] Join emote err: {e}[/yellow]")
         return False
 
     async def _send_bundle_on_join(self):
@@ -1413,89 +1138,171 @@ class SquadBot:
             sent = 0
             for i in range(count):
                 try:
-                    bundle_id = random.choice(AUTO_BUNDLE_POOL)
-                    if i == 0:
-                        pkt = await Mahir_bundle_packet(bundle_id, self.key, self.iv, self.region or "bd")
-                    else:
-                        pkt = await Mahir_bundle_packet_2(bundle_id, self.key, self.iv, self.region or "bd")
+                    bid = random.choice(AUTO_BUNDLE_POOL)
+                    pkt = await (Mahir_bundle_packet if i == 0 else Mahir_bundle_packet_2)(bid, self.key, self.iv, self.region or "bd")
                     if pkt:
                         self.online_writer.write(pkt); await self.online_writer.drain()
-                        sent += 1
-                        await asyncio.sleep(0.5)
-                except Exception as e:
-                    console.print(f"[bold yellow]⚠ [{self.uid}] Bundle err: {e}[/bold yellow]"); break
+                        sent += 1; await asyncio.sleep(0.5)
+                except: break
             self.last_bundle_at = time.time()
-            if sent:
-                console.print(f"[bold magenta]👗 [{self.uid}] Auto Bundle × {sent}[/bold magenta]")
+            if sent: console.print(f"[bold magenta]👗 [{self.uid}] Bundle × {sent}[/bold magenta]")
             return sent > 0
+
+    # ⭐ FIXED: _auto_kick_member
+    async def _auto_kick_member(self, target_uid, target_name="Player"):
+        try:
+            with web_config_lock:
+                enabled = web_config.get("auto_kick_on_join", False)
+                delay = float(web_config.get("kick_delay_sec", 1.0))
+                km = web_config.get("kick_msg", "")
+            if not enabled:
+                return False
+            if not self.online_writer:
+                return False
+            await asyncio.sleep(max(0.05, delay))
+            
+            # Step 1: Send Kick packet
+            try:
+                kick_pkt = await KickTarget(int(target_uid), self.key, self.iv)
+                if kick_pkt and self.online_writer and not self.online_writer.is_closing():
+                    self.online_writer.write(kick_pkt)
+                    await self.online_writer.drain()
+                    console.print(f"[bold red]🚫 [{self.uid}] Auto-kicked → {target_name} ({target_uid})[/bold red]")
+            except Exception as e:
+                console.print(f"[yellow]⚠ Kick pkt err: {e}[/yellow]")
+            
+            # Step 2: Send kick message in squad chat
+            try:
+                km2 = str(km).replace("{user_name}", str(target_name)).replace("{user_id}", str(target_uid))
+                sq_id = self.current_squad_id
+                if sq_id and self.chat_writer and self.bot_uid:
+                    msg_pkt = await MAHIR_SendSquadMsg(
+                        int(sq_id), km2, int(self.bot_uid), self.key, self.iv
+                    )
+                    if msg_pkt:
+                        self.chat_writer.write(msg_pkt)
+                        await self.chat_writer.drain()
+            except Exception as e:
+                console.print(f"[yellow]⚠ Kick msg err: {e}[/yellow]")
+            return True
+        except Exception as e:
+            console.print(f"[red]❌ Auto-kick err: {e}[/red]")
+            return False
+
+    # ⭐ FIXED: _auto_welcome_member
+    async def _auto_welcome_member(self, squad_id, chat_code, target_uid, target_name="Player"):
+        try:
+            with web_config_lock:
+                enabled = web_config.get("auto_welcome_on_join", True)
+                delay = float(web_config.get("welcome_delay_sec", 0.5))
+            if not enabled:
+                return False
+            if not self.chat_writer:
+                return False
+            if not self.bot_uid:
+                return False
+            
+            await asyncio.sleep(max(0.05, delay))
+            
+            # Step 1: Open squad chat using chat_code
+            try:
+                if chat_code:
+                    op = await MAHIR_OpenSquadChat(int(squad_id), chat_code, self.key, self.iv)
+                    if op:
+                        self.chat_writer.write(op)
+                        await self.chat_writer.drain()
+                        await asyncio.sleep(0.2)
+            except Exception as e:
+                console.print(f"[yellow]⚠ Chat open err: {e}[/yellow]")
+            
+            # Step 2: Send welcome message
+            with web_config_lock:
+                wt = web_config.get("welcome_msg", DEFAULT_WELCOME_MSG)
+            wm = wt.replace("{user_name}", str(target_name))
+            
+            mp = await MAHIR_SendSquadMsg(
+                int(squad_id), wm, int(self.bot_uid), self.key, self.iv
+            )
+            if mp:
+                self.chat_writer.write(mp)
+                await self.chat_writer.drain()
+                console.print(f"[bold green]✅ [{self.uid}] Welcome → {target_name}[/bold green]")
+                return True
+            return False
+        except Exception as e:
+            console.print(f"[red]❌ Welcome err: {e}[/red]")
+            return False
+
+    async def _bot_self_emote_loop(self):
+        """Bot Self Emote loop"""
+        while self.is_running and self.is_online:
+            try:
+                with web_config_lock:
+                    enabled = web_config.get("bot_self_emote_enabled", False)
+                    pool = list(web_config.get("bot_self_emote_pool", DEFAULT_JOIN_EMOTES))
+                    interval = float(web_config.get("bot_self_emote_interval", 8.0))
+                if not enabled or not pool:
+                    await asyncio.sleep(2); continue
+                if not self.online_writer or not self.bot_uid:
+                    await asyncio.sleep(2); continue
+                emote_id = random.choice(pool)
+                pkt = await Emote_k(int(self.bot_uid), int(emote_id), self.key, self.iv, self.region or "bd")
+                if pkt and self.online_writer and not self.online_writer.is_closing():
+                    self.online_writer.write(pkt); await self.online_writer.drain()
+                    console.print(f"[bold cyan]🤖 [{self.uid}] Self Emote ({emote_id})[/bold cyan]")
+                await asyncio.sleep(max(2.0, interval))
+            except asyncio.CancelledError: break
+            except: await asyncio.sleep(5)
 
     async def _send_world_recruit(self, reason="manual", count=None):
         if not self.online_writer or not self.bot_uid: return False
         async with self._recruit_lock:
             with web_config_lock:
-                default_count = web_config.get("world_recruit_count", 3)
-                recruit_type  = web_config.get("world_recruit_type", "1")
-            n = count if count is not None else default_count
+                dc = web_config.get("world_recruit_count", 3)
+                rt = web_config.get("world_recruit_type", "1")
+            n = count if count is not None else dc
             n = max(1, min(10, int(n)))
             now = time.time()
-            if now - self.last_recruit_at < 2.0 and reason != "initial":
-                return False
-            sent_type1 = 0; sent_type2 = 0
+            if now - self.last_recruit_at < 2.0 and reason != "initial": return False
+            s1, s2 = 0, 0
             for i in range(n):
                 try:
-                    if recruit_type == "1": use_type = "1"
-                    elif recruit_type == "2": use_type = "2"
-                    elif recruit_type == "half": use_type = "1" if (i % 2 == 0) else "2"
-                    elif recruit_type == "random": use_type = random.choice(["1", "2"])
-                    else: use_type = "1"
-
-                    if use_type == "1":
-                        pkt = await MAHIR_World_Recruit(self.bot_uid, self.key, self.iv)
-                        if pkt: sent_type1 += 1
-                    else:
-                        pkt = await MAHIR_World_Recruit2(self.bot_uid, self.key, self.iv)
-                        if pkt: sent_type2 += 1
-
+                    ut = rt if rt in ("1", "2") else ("1" if rt == "half" and i % 2 == 0 else "2" if rt == "half" else random.choice(["1","2"]))
+                    pkt = await (MAHIR_World_Recruit if ut == "1" else MAHIR_World_Recruit2)(self.bot_uid, self.key, self.iv)
                     if pkt:
                         self.online_writer.write(pkt); await self.online_writer.drain()
+                        if ut == "1": s1 += 1
+                        else: s2 += 1
                         await asyncio.sleep(0.35)
-                except Exception as e:
-                    console.print(f"[bold yellow]⚠ [{self.uid}] Recruit err: {e}[/bold yellow]"); break
+                except: break
             self.last_recruit_at = time.time()
-            total_sent = sent_type1 + sent_type2
-            if total_sent:
+            total = s1 + s2
+            if total:
                 icon = {"join":"🟢","leave":"🔴","initial":"🚀","manual":"📢"}.get(reason, "📢")
-                console.print(f"[bold cyan]{icon} [{self.uid}] World Recruit × {total_sent} (T1={sent_type1} T2={sent_type2} | {reason})[/bold cyan]")
-            return total_sent > 0
+                console.print(f"[cyan]{icon} [{self.uid}] Recruit × {total} (T1={s1} T2={s2} | {reason})[/cyan]")
+            return total > 0
 
     async def _build_and_send_squad(self):
         try:
             with web_config_lock:
-                size_code = web_config.get("squad_size", 4)
-                recruit_count = web_config.get("world_recruit_count", 3)
-
-            open_pkt = await MAHIR_OPenSq(self.key, self.iv, self.region, FREEFIRE_VERSION_NAME)
-            if not open_pkt or not self.online_writer: return False
-            self.online_writer.write(open_pkt); await self.online_writer.drain()
+                sc = web_config.get("squad_size", 4)
+                rcc = web_config.get("world_recruit_count", 3)
+            op = await MAHIR_OPenSq(self.key, self.iv, self.region, FREEFIRE_VERSION_NAME)
+            if not op or not self.online_writer: return False
+            self.online_writer.write(op); await self.online_writer.drain()
             await asyncio.sleep(0.4)
-            console.print(f"[bold cyan]ℹ [{self.uid}] Squad Created ✅[/bold cyan]")
-
+            console.print(f"[cyan]ℹ [{self.uid}] Squad Created ✅[/cyan]")
             try:
-                open_pkt2 = await MAHIR_OPenSq(self.key, self.iv, self.region, FREEFIRE_VERSION_NAME)
-                self.online_writer.write(open_pkt2); await self.online_writer.drain()
+                op2 = await MAHIR_OPenSq(self.key, self.iv, self.region, FREEFIRE_VERSION_NAME)
+                self.online_writer.write(op2); await self.online_writer.drain()
                 await asyncio.sleep(0.3)
-            except Exception: pass
-
+            except: pass
             try:
-                size_pkt = await MAHIR_cHSq22(size_code, self.bot_uid, self.key, self.iv, self.region)
-                self.online_writer.write(size_pkt); await self.online_writer.drain()
-                console.print(f"[bold cyan]ℹ [{self.uid}] Squad Size ({size_code}) ✅[/bold cyan]")
+                sp = await MAHIR_cHSq22(sc, self.bot_uid, self.key, self.iv, self.region)
+                self.online_writer.write(sp); await self.online_writer.drain()
                 await asyncio.sleep(0.3)
-            except Exception as e:
-                console.print(f"[bold yellow]⚠ Squad size err: {e}[/bold yellow]")
-
-            await self._send_world_recruit(reason="initial", count=recruit_count)
-
+            except: pass
+            await self._send_world_recruit(reason="initial", count=rcc)
             self.squad_created = True
             self.squad_created_at = time.time()
             self.squad_members.clear()
@@ -1503,193 +1310,94 @@ class SquadBot:
             update_bot_info(self.uid, status="✅ Squad Active", squad_active=True)
             return True
         except Exception as e:
-            console.print(f"[bold red]Squad create err [{self.uid}]: {e}[/bold red]")
-            return False
+            console.print(f"[red]Squad create err [{self.uid}]: {e}[/red]"); return False
 
     async def _do_recreate(self):
         if self._recreate_lock.locked(): return False
         async with self._recreate_lock:
             try:
-                console.print(f"[bold yellow]🔄 [{self.uid}] Recreating squad...[/bold yellow]")
+                console.print(f"[yellow]🔄 [{self.uid}] Recreating squad...[/yellow]")
                 if self.online_writer and self.bot_uid:
                     try:
-                        exit_pkt = await MAHIR_LeaveSquad(self.key, self.iv, self.region, self.bot_uid)
-                        if exit_pkt:
-                            self.online_writer.write(exit_pkt); await self.online_writer.drain()
-                            console.print(f"[bold red]🚪 [{self.uid}] Exited old group[/bold red]")
-                    except Exception: pass
-                self.squad_members.clear()
-                self.member_names.clear()
-                self.current_squad_id = None
-                self.current_chat_code = None
+                        ep = await MAHIR_LeaveSquad(self.key, self.iv, self.region, self.bot_uid)
+                        if ep:
+                            self.online_writer.write(ep); await self.online_writer.drain()
+                            console.print(f"[red]🚪 [{self.uid}] Exited[/red]")
+                    except: pass
+                self.squad_members.clear(); self.member_names.clear()
+                self.current_squad_id = self.current_chat_code = None
                 self.squad_created = False
                 update_active_account(self.uid, squad_id='Pending...', squad_members='0/0')
                 await asyncio.sleep(0.5)
                 return await self._build_and_send_squad()
             except Exception as e:
-                console.print(f"[bold red]Recreate err [{self.uid}]: {e}[/bold red]")
+                console.print(f"[red]Recreate err [{self.uid}]: {e}[/red]")
             return False
 
-    async def Auto_Squad_Welcome(self, squad_id, chat_code, user_uid, user_name="Player"):
-        try:
-            tracking_key = f"{self.bot_uid}_{squad_id}_{user_uid}"
-            if tracking_key in welcome_tracking: return
-            welcome_tracking[tracking_key] = time.time()
-            if not self.chat_writer: return
-
-            open_pkt = await MAHIR_OpenSquadChat(squad_id, chat_code, self.key, self.iv)
-            if open_pkt:
-                self.chat_writer.write(open_pkt); await self.chat_writer.drain()
-                await asyncio.sleep(0.4)
-
-            with web_config_lock:
-                welcome_template = web_config.get("welcome_msg", DEFAULT_WELCOME_MSG)
-            welcome_msg = welcome_template.replace("{user_name}", str(user_name))
-
-            msg_pkt = await MAHIR_SendSquadMsg(squad_id, welcome_msg, self.bot_uid, self.key, self.iv)
-            if msg_pkt:
-                self.chat_writer.write(msg_pkt); await self.chat_writer.drain()
-                console.print(f"[bold green]✅ [{self.uid}] Welcome Sent → {user_name}[/bold green]")
-            await asyncio.sleep(0.3)
-            curr_time_str = datetime.now().strftime("%I:%M:%S %p")
-            update_bot_info(self.uid, last_squad_id=str(squad_id), last_active=curr_time_str)
-        except Exception as e:
-            console.print(f"[bold red]Welcome err: {e}[/bold red]")
-
+    # ⭐ FIXED: send_team_msg
     async def send_team_msg(self, message: str, squad_id=None):
+        """Send a message to squad chat with proper error handling"""
         try:
-            if not self.chat_writer: return False
+            if not self.chat_writer:
+                return False
+            if not self.bot_uid:
+                return False
             sq_id = squad_id or self.current_squad_id
-            if not sq_id: return False
-            pkt = await MAHIR_SendSquadMsg(int(sq_id), message, self.bot_uid, self.key, self.iv)
+            if not sq_id:
+                return False
+            
+            pkt = await MAHIR_SendSquadMsg(
+                int(sq_id), message, int(self.bot_uid), self.key, self.iv
+            )
             if pkt:
-                self.chat_writer.write(pkt); await self.chat_writer.drain()
+                self.chat_writer.write(pkt)
+                await self.chat_writer.drain()
                 return True
         except Exception as e:
-            console.print(f"[bold red]send_team_msg err: {e}[/bold red]")
+            console.print(f"[yellow]⚠ [{self.uid}] send_team_msg err: {e}[/yellow]")
         return False
 
     async def handle_team_command(self, cmd_raw: str, sender_uid, sender_name="Player"):
         try:
-            cmd = cmd_raw.strip(); cmd_lower = cmd.lower()
-
-            if cmd_lower in ("/help", "help"):
-                pages = await build_help_menu(nickname=sender_name, bot_uid=str(sender_uid))
-                for p in pages:
+            cl = cmd_raw.strip().lower()
+            if cl in ("/help", "help"):
+                for p in await build_help_menu(nickname=sender_name, bot_uid=str(sender_uid)):
                     await self.send_team_msg(p); await asyncio.sleep(0.5)
                 return True
-
-            if cmd_lower in ("/app", "app"):
-                intro = "[B][C][00FFFF]MAHIR TCP OFFICIAL APP\n[FFFFFF]অফিসিয়াল অ্যাপটি ডাউনলোড করতে নিচের লিংকে ক্লিক করুন।"
-                link = "https://www.mediafire.com/file/lvykrek51q17hae/MAHIR_TCP.apk"
-                await self.send_team_msg(intro); await asyncio.sleep(0.4)
-                await self.send_team_msg(link); return True
-
-            if cmd_lower in ("/store", "store"):
-                await self.send_team_msg(
-                    "[C][FFD700]❖━━━━━━━━━━━━━━━❖\n"
-                    "[C][B][00FFFF]⚡ MAHIR BOT STORE ⚡\n"
-                    "[C][FFD700]────────────────\n"
-                    "[C][00FF00]🤖 TCP BOT Price : [FFFF00]500 BDT\n"
-                    "[C][00FF00]🌐 Website       : [FFFF00]mahir.xo.je\n"
-                    "[C][00FF00]👤 Owner Telegram : [FFFF00]@MAHIR0208\n"
-                    "[C][FFD700]❖━━━━━━━━━━━━━━━❖"
-                ); return True
-
-            if cmd_lower == "hi":
-                await self.send_team_msg(
-                    "[00FFFF][b][c]\n[FFFFFF]━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    "[FFFF00]😊 হাই! আপনার দিনটি কেমন যাচ্ছে?\n[FFFF00]আশা করি আপনি সুস্থ ও ভালো আছেন।\n\n"
-                    "[00FFFF]📱 যোগাযোগ করুন:\n[FFD700]টেলিগ্রাম: @MAHIR0208\n[FFD700]টিকটক: @MAHIR__222\n"
-                    "[00FF00]💡 বট ব্যবহার করতে চাইলে HELP টাইপ করুন!\n[FFFFFF]━━━━━━━━━━━━━━━━━━━━━━━━━"
-                ); return True
-
-            if cmd_lower == ".time":
-                bd_time = datetime.now().strftime('%I:%M %p')
-                await self.send_team_msg(
-                    f"[B][C][00FFFF]╔═══════════════╗\n"
-                    f"[B][C][00FFFF]║  『 ⌚ SYSTEM STATUS 』  ║\n"
-                    f"[B][C][00FFFF]╠═══════════════╣\n"
-                    f"[B][C][FFFFFF]🕒 BD TIME : [00FF00]{bd_time}\n"
-                    f"[B][C][FFFFFF]⏱️ UPTIME  : [FFFF00]ONLINE\n"
-                    f"[B][C][00FFFF]╚═══════════════╝\n"
-                    f"[B][C][0dffd0]MAHIR VIP SYSTEM ONLINE ✔"
-                ); return True
-
-            if cmd_lower == "my id":
-                await self.send_team_msg(
-                    f"[B][C][00FFFF]╔═══════════════╗\n"
-                    f"[B][C][00FFFF]║  👤 YOUR INFO  ║\n"
-                    f"[B][C][00FFFF]╠═══════════════╣\n"
-                    f"[B][C][FFFFFF]Name : [00FF00]{sender_name}\n"
-                    f"[B][C][FFFFFF]UID  : [FFFF00]{sender_uid}\n"
-                    f"[B][C][00FFFF]╚═══════════════╝"
-                ); return True
-
+            if cl in ("/app", "app"):
+                await self.send_team_msg("[B][C][00FFFF]MAHIR TCP OFFICIAL APP\n[FFFFFF]Download লিংক নিচে")
+                await asyncio.sleep(0.4)
+                await self.send_team_msg("https://www.mediafire.com/file/lvykrek51q17hae/MAHIR_TCP.apk")
+                return True
+            if cl in ("/store", "store"):
+                await self.send_team_msg("[C][FFD700]⚡ MAHIR BOT STORE ⚡\n[C][00FF00]🤖 TCP BOT: [FFFF00]500 BDT\n[C][00FF00]🌐 Website: [FFFF00]mahir.xo.je\n[C][00FF00]👤 Owner: [FFFF00]@MAHIR0208")
+                return True
+            if cl == "hi":
+                await self.send_team_msg("[00FFFF][b][c]😊 হাই! আপনার দিনটি কেমন যাচ্ছে?\n[FFD700]Telegram: @MAHIR0208\n[FFD700]TikTok: @MAHIR__222")
+                return True
+            if cl == ".time":
+                await self.send_team_msg(f"[B][C][00FFFF]╔═══════════════╗\n[B][C][FFFFFF]🕒 TIME: [00FF00]{datetime.now().strftime('%I:%M %p')}\n[B][C][00FFFF]╚═══════════╝")
+                return True
+            if cl == "my id":
+                await self.send_team_msg(f"[B][C][00FFFF]👤 YOUR INFO\n[B][C][FFFFFF]Name: [00FF00]{sender_name}\n[B][C][FFFFFF]UID : [FFFF00]{sender_uid}")
+                return True
             with web_config_lock:
                 cmds = dict(web_config.get("commands", {}))
-
-            for trigger, cfg in cmds.items():
+            for trig, cfg in cmds.items():
                 if not cfg.get("enabled", True): continue
-                match_mode = cfg.get("match", "contains")
-                t = trigger.lower(); m = cmd_lower
-                matched = False
-                if match_mode == "exact" and m == t: matched = True
-                elif match_mode == "startswith" and m.startswith(t): matched = True
-                elif match_mode == "contains" and t in m: matched = True
+                mm = cfg.get("match", "contains")
+                t, m = trig.lower(), cl
+                matched = (mm == "exact" and m == t) or (mm == "startswith" and m.startswith(t)) or (mm == "contains" and t in m)
                 if matched:
-                    ctype = cfg.get("type", "message")
-                    if ctype == "message":
-                        resp = cfg.get("response", "").replace("{user_name}", str(sender_name))
-                        await self.send_team_msg(resp); return True
-                    elif ctype == "recruit_squad":
+                    ct = cfg.get("type", "message")
+                    if ct == "message":
+                        await self.send_team_msg(cfg.get("response", "").replace("{user_name}", str(sender_name)))
+                        return True
+                    elif ct == "recruit_squad":
                         await self._send_world_recruit(reason="manual"); return True
             return False
         except Exception as e:
-            console.print(f"[bold red]handle_team_command err: {e}[/bold red]")
-            return False
-
-    async def _handle_member_change(self, new_members_dict, reason_hint="auto"):
-        try:
-            joined = {u: n for u, n in new_members_dict.items() if u not in self.squad_members}
-            left = {u: self.member_names.get(u, "Unknown") for u in self.squad_members if u not in new_members_dict}
-            self.squad_members = set(new_members_dict.keys())
-            self.member_names.update(new_members_dict)
-            with web_config_lock:
-                recruit_on_join = web_config.get("auto_recruit_on_join", True)
-                recruit_on_leave = web_config.get("auto_recruit_on_leave", True)
-                sz = web_config.get("squad_size", 4)
-            if joined and recruit_on_join:
-                names_str = ", ".join(f"{n}" for n in joined.values())
-                console.print(f"[bold cyan]🟢 [{self.uid}] JOIN:[/bold cyan] [yellow]{names_str}[/yellow] → recruit")
-                asyncio.create_task(self._send_world_recruit(reason="join"))
-            if left and recruit_on_leave:
-                names_str = ", ".join(f"{n}" for n in left.values())
-                console.print(f"[bold cyan]🔴 [{self.uid}] LEFT:[/bold cyan] [yellow]{names_str}[/yellow] → recruit")
-                asyncio.create_task(self._send_world_recruit(reason="leave"))
-            update_active_account(self.uid, **{'squad_members': f"{len(self.squad_members)}/{sz+1}"})
-        except Exception as e:
-            console.print(f"[bold red]Member-change err: {e}[/bold red]")
-
-    async def _animation_loop(self):
-        while self.is_running and self.is_online:
-            try:
-                if is_stopped(): break
-                with web_config_lock:
-                    enabled = web_config.get("auto_animation", True)
-                    interval = web_config.get("animation_interval_sec", 10)
-                if not enabled or not self.online_writer or not self.bot_uid:
-                    await asyncio.sleep(2); continue
-                anim_id = random.choice(ANIMATION_POOL)
-                pkt = await mahir_animation_packet(anim_id, self.key, self.iv)
-                if pkt and self.online_writer and not self.online_writer.is_closing():
-                    self.online_writer.write(pkt); await self.online_writer.drain()
-                    console.print(f"[bold cyan]✨ [{self.uid}] Animation ({anim_id})[/bold cyan]")
-                await asyncio.sleep(max(5, int(interval)))
-            except asyncio.CancelledError: break
-            except Exception as e:
-                console.print(f"[bold yellow]⚠ [{self.uid}] Anim loop err: {e}[/bold yellow]")
-                await asyncio.sleep(5)
+            console.print(f"[red]handle_team_command err: {e}[/red]"); return False
 
     async def tcp_online(self, ip, port, auth_token):
         self.current_squad_id = None
@@ -1704,150 +1412,31 @@ class SquadBot:
                 self.reader, self.online_writer = reader, writer
                 self.is_online = True
                 update_bot_info(self.uid, status="✅ Online")
-                console.print(f"[bold cyan]ℹ [{self.uid}] ONLINE Connected ✅[/bold cyan]")
-
+                console.print(f"[cyan]ℹ [{self.uid}] ONLINE Connected ✅[/cyan]")
                 if not await self._build_and_send_squad():
                     self.is_online = False; await asyncio.sleep(10); continue
-
-                if self._animation_task and not self._animation_task.done():
-                    self._animation_task.cancel()
+                if self._animation_task and not self._animation_task.done(): self._animation_task.cancel()
                 self._animation_task = asyncio.create_task(self._animation_loop())
+                if self._self_emote_task and not self._self_emote_task.done(): self._self_emote_task.cancel()
+                self._self_emote_task = asyncio.create_task(self._bot_self_emote_loop())
 
                 while self.is_running and self.is_online:
                     if is_stopped(): break
                     cur_ts = get_recreate_timestamp()
                     if cur_ts > self.seen_recreate_ts:
                         self.seen_recreate_ts = cur_ts
-                        await self._do_recreate()
-                        continue
-
+                        await self._do_recreate(); continue
                     with web_config_lock:
-                        auto_recreate = web_config.get("auto_recreate", True)
-                        lifetime = web_config.get("squad_lifetime_sec", 10)
-                    if auto_recreate and self.squad_created and (time.time() - self.squad_created_at > lifetime):
-                        console.print(f"[bold yellow]⏰ [{self.uid}] Lifetime ({lifetime}s) → recreate[/bold yellow]")
-                        await self._do_recreate()
-                        continue
-
+                        ar = web_config.get("auto_recreate", True)
+                        lt = web_config.get("squad_lifetime_sec", 10)
+                    if ar and self.squad_created and (time.time() - self.squad_created_at > lt):
+                        console.print(f"[yellow]⏰ [{self.uid}] Lifetime {lt}s → recreate[/yellow]")
+                        await self._do_recreate(); continue
                     try:
                         data = await asyncio.wait_for(self.reader.read(65536), timeout=1.0)
                         if not data: break
                         data_hex = data.hex()
-
                         if data_hex.startswith("0e00") or data_hex.startswith("0500"):
-                            decoded = DeCode_PackEt(data_hex[10:])
-                            if decoded:
-                                try:
-                                    packet_json = json.loads(decoded)
-                                    f5 = packet_json.get('5')
-                                    if not isinstance(f5, dict): continue
-                                    f5_data = f5.get('data')
-                                    if not isinstance(f5_data, dict): continue
-
-                                    squad_owner_int = safe_get_int(f5_data.get('1'))
-                                    squad_owner = str(squad_owner_int) if squad_owner_int is not None else None
-                                    if squad_owner and squad_owner != str(self.bot_uid):
-                                        self.current_squad_id = squad_owner
-
-                                    c_code = (
-                                        safe_get_str(f5_data.get('14')) or
-                                        safe_get_str(f5_data.get('17')) or
-                                        safe_get_str(f5_data.get('31')) or
-                                        safe_get_str(f5_data.get('33'))
-                                    )
-
-                                    current_members = {}
-                                    for pf_key in ('6', '2', '3', '5', '7'):
-                                        candidate = safe_dict(f5_data.get(pf_key))
-                                        if not candidate: continue
-                                        cand_uid = safe_get_int(candidate.get('1'))
-                                        cand_name = safe_get_str(candidate.get('2'))
-                                        if (cand_uid and str(cand_uid) != str(self.bot_uid)
-                                            and len(str(cand_uid)) > 8 and cand_name):
-                                            uid_str = str(cand_uid); p_name = cand_name
-                                            current_members[uid_str] = p_name
-                                            if uid_str not in self.squad_members:
-                                                sq_id = squad_owner_int or (int(self.current_squad_id) if self.current_squad_id else None)
-                                                if sq_id and c_code:
-                                                    asyncio.create_task(self.Auto_Squad_Welcome(
-                                                        int(sq_id), c_code, uid_str, user_name=p_name))
-                                                console.print(
-                                                    f"[bold cyan][{self.uid}][/bold cyan] "
-                                                    f"[bold green]➜ Member Joined:[/bold green] "
-                                                    f"[bold yellow]{p_name}[/bold yellow] ({uid_str})")
-                                                asyncio.create_task(self._send_emote_on_join(uid_str))
-                                                asyncio.create_task(self._send_bundle_on_join())
-                                            break
-
-                                    if current_members:
-                                        joined_now = {u: n for u, n in current_members.items() if u not in self.squad_members}
-                                        if joined_now:
-                                            for u, n in joined_now.items():
-                                                self.squad_members.add(u); self.member_names[u] = n
-                                            with web_config_lock:
-                                                recruit_on_join = web_config.get("auto_recruit_on_join", True)
-                                                sz = web_config.get('squad_size', 4)
-                                            if recruit_on_join:
-                                                asyncio.create_task(self._send_world_recruit(reason="join"))
-                                            update_active_account(self.uid, **{'squad_members': f"{len(self.squad_members)}/{sz+1}"})
-
-                                    new_sq_id_int = safe_get_int(f5_data.get('1'))
-                                    if new_sq_id_int and 10000000 < new_sq_id_int < 999999999:
-                                        if str(new_sq_id_int) != str(self.current_squad_id):
-                                            self.current_squad_id = str(new_sq_id_int)
-                                            console.print(Panel(
-                                                f"[bold green]🆔 Squad ID :[/bold green] [bold yellow]{self.current_squad_id}[/bold yellow]\n"
-                                                f"[bold cyan]👤 Bot Name :[/bold cyan] [white]{self.Nm}[/white]\n"
-                                                f"[bold cyan]🆔 Bot UID  :[/bold cyan] [white]{self.bot_uid}[/white]",
-                                                title=f"[bold magenta]✨ SQUAD ESTABLISHED ({self.uid})[/bold magenta]",
-                                                border_style="cyan"))
-                                            update_bot_info(self.uid, last_squad_id=str(new_sq_id_int), squad_active=True)
-                                            with web_config_lock:
-                                                sz = web_config.get('squad_size', 4)
-                                            update_active_account(self.uid, **{'squad_id': self.current_squad_id, 'squad_members': f"0/{sz+1}"})
-
-                                    full_squad_list = safe_dict(f5_data.get('4'))
-                                    if full_squad_list:
-                                        new_snapshot = {}
-                                        for k, v in full_squad_list.items():
-                                            v_dict = safe_dict(v)
-                                            if not v_dict: continue
-                                            m_uid_int = safe_get_int(v_dict.get('1'))
-                                            m_name = safe_get_str(v_dict.get('2'))
-                                            if m_uid_int and str(m_uid_int) != str(self.bot_uid) and m_name:
-                                                new_snapshot[str(m_uid_int)] = m_name
-                                        if new_snapshot:
-                                            await self._handle_member_change(new_snapshot)
-                                except Exception:
-                                    pass
-                    except asyncio.TimeoutError: continue
-                    except Exception: break
-            except Exception as e:
-                if not is_stopped():
-                    console.print(f"[bold red][{self.uid}] tcp_online err: {e}[/bold red]")
-                self.is_online = False
-            if self._animation_task and not self._animation_task.done():
-                self._animation_task.cancel()
-            if is_stopped(): break
-            await asyncio.sleep(8)
-
-    async def tcp_chat(self, ip, port, auth_token, key, iv, ready_event):
-        while self.is_running:
-            if is_stopped(): break
-            try:
-                reader, writer = await asyncio.open_connection(ip, int(port))
-                writer.write(bytes.fromhex(auth_token)); await writer.drain()
-                self.chat_reader = reader; self.chat_writer = writer
-                ready_event.set()
-                console.print(f"[bold cyan]ℹ [{self.uid}] CHAT Connected ✅[/bold cyan]")
-
-                while self.is_running:
-                    if is_stopped(): break
-                    try:
-                        data = await asyncio.wait_for(self.chat_reader.read(4096), timeout=5.0)
-                        if not data: break
-                        data_hex = data.hex()
-                        if data_hex.startswith("1200"):
                             decoded = DeCode_PackEt(data_hex[10:])
                             if decoded:
                                 try:
@@ -1856,26 +1445,116 @@ class SquadBot:
                                     if not isinstance(f5, dict): continue
                                     f5_data = f5.get('data')
                                     if not isinstance(f5_data, dict): continue
-                                    msg_text = safe_get_str(f5_data.get('4')).strip()
-                                    chat_id = safe_get_int(f5_data.get('2'))
-                                    sender_uid = safe_get_int(f5_data.get('1'))
-                                    f9 = safe_dict(f5_data.get('9'))
-                                    sender_name = safe_get_str(f9.get('1'), "Player") if f9 else "Player"
-                                    if not msg_text or not sender_uid: continue
-                                    if str(sender_uid) == str(self.bot_uid): continue
-                                    console.print(
-                                        f"[bold cyan][{self.uid}][/bold cyan] "
-                                        f"[white]{sender_name}[/white] [dim]({sender_uid})[/dim]: [yellow]{msg_text}[/yellow]"
-                                    )
-                                    handled = await self.handle_team_command(msg_text, sender_uid, sender_name)
-                                    if handled:
-                                        console.print(f"[bold green]✅ [{self.uid}] Command handled[/bold green]")
-                                except Exception:
-                                    pass
+                                    soi = safe_get_int(f5_data.get('1'))
+                                    so = str(soi) if soi is not None else None
+                                    if so and so != str(self.bot_uid): self.current_squad_id = so
+                                    c_code = safe_get_str(f5_data.get('14')) or safe_get_str(f5_data.get('17')) or safe_get_str(f5_data.get('31')) or safe_get_str(f5_data.get('33'))
+                                    cm = {}
+                                    for pk in ('6','2','3','5','7'):
+                                        cand = safe_dict(f5_data.get(pk))
+                                        if not cand: continue
+                                        cu = safe_get_int(cand.get('1'))
+                                        cn = safe_get_str(cand.get('2'))
+                                        if cu and str(cu) != str(self.bot_uid) and len(str(cu)) > 8 and cn:
+                                            us, pn = str(cu), cn
+                                            cm[us] = pn
+                                            if us not in self.squad_members:
+                                                sq_id = soi or (int(self.current_squad_id) if self.current_squad_id else None)
+                                                console.print(f"[cyan][{self.uid}][/cyan] [green]➜ Joined:[/green] [yellow]{pn}[/yellow] ({us})")
+                                                asyncio.create_task(self._send_emote_on_join(us))
+                                                asyncio.create_task(self._send_bundle_on_join())
+                                                with web_config_lock:
+                                                    kick_on = web_config.get("auto_kick_on_join", False)
+                                                    welcome_on = web_config.get("auto_welcome_on_join", True)
+                                                if kick_on:
+                                                    asyncio.create_task(self._auto_kick_member(us, pn))
+                                                if welcome_on and sq_id and c_code:
+                                                    asyncio.create_task(self._auto_welcome_member(int(sq_id), c_code, us, target_name=pn))
+                                            break
+                                    if cm:
+                                        jn = {u:n for u,n in cm.items() if u not in self.squad_members}
+                                        if jn:
+                                            for u, n in jn.items():
+                                                self.squad_members.add(u); self.member_names[u] = n
+                                            with web_config_lock:
+                                                rj = web_config.get("auto_recruit_on_join", True)
+                                                sz = web_config.get('squad_size', 4)
+                                            if rj: asyncio.create_task(self._send_world_recruit(reason="join"))
+                                            update_active_account(self.uid, **{'squad_members': f"{len(self.squad_members)}/{sz+1}"})
+                                    nsq = safe_get_int(f5_data.get('1'))
+                                    if nsq and 10000000 < nsq < 999999999:
+                                        if str(nsq) != str(self.current_squad_id):
+                                            self.current_squad_id = str(nsq)
+                                            console.print(Panel(f"[green]🆔 Squad ID: [yellow]{self.current_squad_id}[/yellow]", title=f"[magenta]✨ ESTABLISHED ({self.uid})[/magenta]", border_style="cyan"))
+                                            update_bot_info(self.uid, last_squad_id=str(nsq), squad_active=True)
+                                            with web_config_lock: sz = web_config.get('squad_size', 4)
+                                            update_active_account(self.uid, **{'squad_id': self.current_squad_id, 'squad_members': f"0/{sz+1}"})
+                                except Exception: pass
                     except asyncio.TimeoutError: continue
                     except Exception: break
-            except Exception:
-                pass
+            except Exception as e:
+                if not is_stopped(): console.print(f"[red][{self.uid}] tcp_online err: {e}[/red]")
+                self.is_online = False
+            for t in [self._animation_task, self._self_emote_task]:
+                if t and not t.done(): t.cancel()
+            if is_stopped(): break
+            await asyncio.sleep(8)
+
+    async def _animation_loop(self):
+        while self.is_running and self.is_online:
+            try:
+                if is_stopped(): break
+                with web_config_lock:
+                    enabled = web_config.get("auto_animation", True)
+                    interval = web_config.get("animation_interval_sec", 10)
+                if not enabled or not self.online_writer or not self.bot_uid:
+                    await asyncio.sleep(2); continue
+                anim_id = random.choice(ANIMATION_POOL)
+                pkt = await mahir_animation_packet(anim_id, self.key, self.iv)
+                if pkt and self.online_writer and not self.online_writer.is_closing():
+                    self.online_writer.write(pkt); await self.online_writer.drain()
+                    console.print(f"[cyan]✨ [{self.uid}] Animation ({anim_id})[/cyan]")
+                await asyncio.sleep(max(5, int(interval)))
+            except asyncio.CancelledError: break
+            except: await asyncio.sleep(5)
+
+    async def tcp_chat(self, ip, port, auth_token, key, iv, ready_event):
+        while self.is_running:
+            if is_stopped(): break
+            try:
+                reader, writer = await asyncio.open_connection(ip, int(port))
+                writer.write(bytes.fromhex(auth_token)); await writer.drain()
+                self.chat_reader, self.chat_writer = reader, writer
+                ready_event.set()
+                console.print(f"[cyan]ℹ [{self.uid}] CHAT Connected ✅[/cyan]")
+                while self.is_running:
+                    if is_stopped(): break
+                    try:
+                        data = await asyncio.wait_for(self.chat_reader.read(4096), timeout=5.0)
+                        if not data: break
+                        dh = data.hex()
+                        if dh.startswith("1200"):
+                            dec = DeCode_PackEt(dh[10:])
+                            if dec:
+                                try:
+                                    pj = json.loads(dec)
+                                    f5 = pj.get('5')
+                                    if not isinstance(f5, dict): continue
+                                    fd = f5.get('data')
+                                    if not isinstance(fd, dict): continue
+                                    mt = safe_get_str(fd.get('4')).strip()
+                                    ci = safe_get_int(fd.get('2'))
+                                    su = safe_get_int(fd.get('1'))
+                                    f9 = safe_dict(fd.get('9'))
+                                    sn = safe_get_str(f9.get('1'), "Player") if f9 else "Player"
+                                    if not mt or not su: continue
+                                    if str(su) == str(self.bot_uid): continue
+                                    console.print(f"[cyan][{self.uid}][/cyan] [white]{sn}[/white]: [yellow]{mt}[/yellow]")
+                                    await self.handle_team_command(mt, su, sn)
+                                except: pass
+                    except asyncio.TimeoutError: continue
+                    except Exception: break
+            except: pass
             if is_stopped(): break
             await asyncio.sleep(8)
 
@@ -1883,138 +1562,92 @@ class SquadBot:
         global online_count, BOT_OWN_ID
         while self.is_running:
             if is_stopped():
-                console.print(f"[bold red]🛑 [{self.uid}] Stopped by user[/bold red]")
-                break
+                console.print(f"[red]🛑 [{self.uid}] Stopped by user[/red]"); break
             try:
                 self.seen_restart_ts = get_restart_timestamp()
                 self.tasks = []
-
-                open_id, access_token = await GeNeRaTeAccAccess(self.uid, self.password)
-                if not open_id:
-                    update_bot_info(self.uid, status="❌ Auth Failed")
-                    await asyncio.sleep(10); continue
-
-                payload = await EncRypTMajoRLoGin(open_id, access_token, FREEFIRE_VERSION_NAME)
-                response = await MajorLogin(payload)
-                if not response:
-                    update_bot_info(self.uid, status="❌ Login Failed")
-                    await asyncio.sleep(10); continue
-
-                try: auth_data = await DecRypTMajoRLoGin(response)
-                except:
-                    update_bot_info(self.uid, status="❌ Decrypt Failed")
-                    await asyncio.sleep(10); continue
-
-                if not getattr(auth_data, 'token', None) or not getattr(auth_data, 'url', None):
-                    update_bot_info(self.uid, status="❌ Empty Auth")
-                    await asyncio.sleep(10); continue
-
-                login_data = await GetLoginData(auth_data.url, payload, auth_data.token)
-                if not login_data:
-                    update_bot_info(self.uid, status="❌ Data Failed")
-                    await asyncio.sleep(10); continue
-
+                oi, at = await GeNeRaTeAccAccess(self.uid, self.password)
+                if not oi: update_bot_info(self.uid, status="❌ Auth Failed"); await asyncio.sleep(10); continue
+                payload = await EncRypTMajoRLoGin(oi, at, FREEFIRE_VERSION_NAME)
+                resp = await MajorLogin(payload)
+                if not resp: update_bot_info(self.uid, status="❌ Login Failed"); await asyncio.sleep(10); continue
+                try: auth = await DecRypTMajoRLoGin(resp)
+                except: update_bot_info(self.uid, status="❌ Decrypt Failed"); await asyncio.sleep(10); continue
+                if not getattr(auth, 'token', None) or not getattr(auth, 'url', None):
+                    update_bot_info(self.uid, status="❌ Empty Auth"); await asyncio.sleep(10); continue
+                ld = await GetLoginData(auth.url, payload, auth.token)
+                if not ld: update_bot_info(self.uid, status="❌ Data Failed"); await asyncio.sleep(10); continue
                 from Pb2 import PorTs_pb2
-                port_data = PorTs_pb2.GetLoginData()
-                port_data.ParseFromString(login_data)
-                self.key = auth_data.key; self.iv = auth_data.iv
-                self.region = auth_data.region; self.bot_uid = auth_data.account_uid
-                self.jwt_token = auth_data.token
-
-                try: BOT_OWN_ID = int(auth_data.account_uid)
-                except Exception: pass
-
-                extracted_name = extract_player_name(login_data)
-                if extracted_name and len(extracted_name) < 60:
-                    self.Nm = extracted_name
+                pd = PorTs_pb2.GetLoginData(); pd.ParseFromString(ld)
+                self.key, self.iv = auth.key, auth.iv
+                self.region, self.bot_uid = auth.region, auth.account_uid
+                self.jwt_token = auth.token
+                try: BOT_OWN_ID = int(auth.account_uid)
+                except: pass
+                en = extract_player_name(ld)
+                if en and len(en) < 60: self.Nm = en
                 else:
                     try:
-                        dec_jwt = jwt.decode(auth_data.token, options={"verify_signature": False})
-                        fb = dec_jwt.get('nickname')
-                        self.Nm = str(fb) if fb and len(str(fb)) < 30 else f"Player_{str(auth_data.account_uid)[-4:]}"
-                    except: self.Nm = f"Player_{str(auth_data.account_uid)[-4:]}"
-
-                update_bot_info(self.uid, account_uid=str(auth_data.account_uid))
-
-                online_ip, online_port = port_data.Online_IP_Port.split(":")
-                chat_ip, chat_port = port_data.AccountIP_Port.split(":")
-
-                online_auth = create_auth_token_online(auth_data.account_uid, auth_data.token, auth_data.timestamp, auth_data.key, auth_data.iv)
-                chat_auth = create_auth_token_chat(auth_data.account_uid, auth_data.token, auth_data.timestamp, auth_data.key, auth_data.iv)
-
-                if not online_auth or not chat_auth:
-                    update_bot_info(self.uid, status="❌ Token Failed")
-                    await asyncio.sleep(10); continue
-
-                console.print(f"[bold green]✔ BoT OnLiNe: {self.Nm} | Region: {self.region}[/bold green]")
-
-                try:
-                    await equip_emote_on_login(
-                        auth_data.token,
-                        logger=lambda m: console.print(f"[cyan][{self.uid}] {m}[/cyan]")
-                    )
-                except Exception as e:
-                    console.print(f"[bold yellow]⚠ Emote equip err [{self.uid}]: {e}[/bold yellow]")
-
+                        dj = jwt.decode(auth.token, options={"verify_signature": False})
+                        fb = dj.get('nickname')
+                        self.Nm = str(fb) if fb and len(str(fb)) < 30 else f"Player_{str(auth.account_uid)[-4:]}"
+                    except: self.Nm = f"Player_{str(auth.account_uid)[-4:]}"
+                update_bot_info(self.uid, account_uid=str(auth.account_uid))
+                oip, opp = pd.Online_IP_Port.split(":")
+                cip, cpp = pd.AccountIP_Port.split(":")
+                oa = create_auth_token_online(auth.account_uid, auth.token, auth.timestamp, auth.key, auth.iv)
+                ca = create_auth_token_chat(auth.account_uid, auth.token, auth.timestamp, auth.key, auth.iv)
+                if not oa or not ca: update_bot_info(self.uid, status="❌ Token Failed"); await asyncio.sleep(10); continue
+                console.print(f"[green]✔ Online: {self.Nm} | {self.region}[/green]")
+                try: await equip_emote_on_login(auth.token, logger=lambda m: console.print(f"[cyan][{self.uid}] {m}[/cyan]"))
+                except: pass
                 with active_lock:
                     if not any(a['uid'] == self.uid for a in active_accounts):
                         online_count += 1
-                        active_accounts.append({
-                            'uid': self.uid, 'bot_uid': str(auth_data.account_uid), 'name': self.Nm,
+                        active_accounts.append({'uid': self.uid, 'bot_uid': str(auth.account_uid), 'name': self.Nm,
                             'region': self.region or 'BD', 'time': datetime.now().strftime('%H:%M:%S'),
                             'squad_id': 'Pending...', 'squad_members': '0/0'})
-
-                update_bot_info(self.uid, status="✅ Online", account_uid=str(auth_data.account_uid), squad_active=True)
-
+                update_bot_info(self.uid, status="✅ Online", account_uid=str(auth.account_uid), squad_active=True)
                 ready = asyncio.Event()
-                t1 = asyncio.create_task(self.tcp_chat(chat_ip, chat_port, chat_auth, auth_data.key, auth_data.iv, ready))
+                t1 = asyncio.create_task(self.tcp_chat(cip, cpp, ca, auth.key, auth.iv, ready))
                 self.tasks.append(t1)
                 await ready.wait()
-                t2 = asyncio.create_task(self.tcp_online(online_ip, online_port, online_auth))
+                t2 = asyncio.create_task(self.tcp_online(oip, opp, oa))
                 self.tasks.append(t2)
-
                 monitor = asyncio.create_task(self._monitor_restart())
-                try:
-                    await asyncio.gather(t1, t2, return_exceptions=True)
+                try: await asyncio.gather(t1, t2, return_exceptions=True)
                 finally:
                     if not monitor.done(): monitor.cancel()
             except Exception as e:
-                if not is_stopped():
-                    console.print(f"[bold red]❌ UID {self.uid} Err: {e}[/bold red]")
+                if not is_stopped(): console.print(f"[red]❌ UID {self.uid} Err: {e}[/red]")
                 update_bot_info(self.uid, status="❌ Error", squad_active=False)
             remove_active_account(self.uid)
-
-            if is_stopped():
-                console.print(f"[bold red]🛑 [{self.uid}] Halted[/bold red]")
-                break
+            if is_stopped(): console.print(f"[red]🛑 [{self.uid}] Halted[/red]"); break
             if get_restart_timestamp() > self.seen_restart_ts:
-                console.print(f"[bold green]♻️ [{self.uid}] Reconnecting...[/bold green]")
-                continue
+                console.print(f"[green]♻️ [{self.uid}] Reconnecting...[/green]"); continue
             await asyncio.sleep(10)
 
     async def _monitor_restart(self):
         while self.is_running:
             await asyncio.sleep(2)
             if is_stopped():
-                console.print(f"[bold red]🛑 [{self.uid}] Stop signal[/bold red]")
-                if self._animation_task and not self._animation_task.done():
-                    self._animation_task.cancel()
+                console.print(f"[red]🛑 [{self.uid}] Stop signal[/red]")
+                for t in [self._animation_task, self._self_emote_task]:
+                    if t and not t.done(): t.cancel()
                 for t in self.tasks:
                     if not t.done(): t.cancel()
                 return
             cur_ts = get_restart_timestamp()
             if cur_ts > self.seen_restart_ts:
                 self.seen_restart_ts = cur_ts
-                console.print(f"[bold yellow]♻️ [{self.uid}] Restart signal[/bold yellow]")
-                if self._animation_task and not self._animation_task.done():
-                    self._animation_task.cancel()
+                for t in [self._animation_task, self._self_emote_task]:
+                    if t and not t.done(): t.cancel()
                 for t in self.tasks:
                     if not t.done(): t.cancel()
                 return
 
-
 # ================================================================
-#   WEB SERVER
+#   WEB SERVER — PREMIUM CYBERPUNK DASHBOARD (REDESIGNED)
 # ================================================================
 class BotHandler(BaseHTTPRequestHandler):
     def _json_response(self, data, status=200):
@@ -2033,11 +1666,10 @@ class BotHandler(BaseHTTPRequestHandler):
         try:
             cl = int(self.headers.get('Content-Length', 0))
             return self.rfile.read(cl).decode('utf-8')
-        except Exception:
-            return ""
+        except: return ""
 
-    def _html_escape(self, s):
-        return (str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
+    def _esc(self, s):
+        return str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
     def do_GET(self):
         if self.path == '/':
@@ -2045,7 +1677,7 @@ class BotHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html; charset=utf-8')
             self.end_headers()
             with active_lock:
-                cur_online = online_count; cur_total = total_accounts; cur_threads = len(active_accounts)
+                cur_online, cur_total, cur_threads = online_count, total_accounts, len(active_accounts)
             with web_config_lock:
                 cur_size = web_config.get("squad_size", 4)
                 cur_recruit = web_config.get("world_recruit_count", 3)
@@ -2061,449 +1693,882 @@ class BotHandler(BaseHTTPRequestHandler):
                 cur_anim = web_config.get("auto_animation", True)
                 cur_anim_int = web_config.get("animation_interval_sec", 10)
                 cur_emote_join = web_config.get("auto_emote_on_join", True)
-            welcome_esc = self._html_escape(rc_welcome)
+                cur_emote_delay = web_config.get("emote_join_delay_sec", 0.5)
+                cur_kick_join = web_config.get("auto_kick_on_join", False)
+                cur_kick_delay = web_config.get("kick_delay_sec", 1.0)
+                kick_msg_raw = web_config.get("kick_msg", "")
+                cur_welcome_join = web_config.get("auto_welcome_on_join", True)
+                cur_welcome_delay = web_config.get("welcome_delay_sec", 0.5)
+                cur_self_emote = web_config.get("bot_self_emote_enabled", False)
+                cur_self_emote_int = web_config.get("bot_self_emote_interval", 8.0)
+                join_emote_pool = list(web_config.get("join_emote_pool", DEFAULT_JOIN_EMOTES))
+                self_emote_pool = list(web_config.get("bot_self_emote_pool", DEFAULT_JOIN_EMOTES))
+            welcome_esc = self._esc(rc_welcome)
+            kick_msg_esc = self._esc(kick_msg_raw)
+            join_emote_csv = ",".join(str(x) for x in join_emote_pool)
+            self_emote_csv = ",".join(str(x) for x in self_emote_pool)
             stopped_now = is_stopped()
-            stopped_str = "true" if stopped_now else "false"
-            stopped_color = "#ef4444" if stopped_now else "#10b981"
-            stopped_label = "🛑 BOTS STOPPED" if stopped_now else "🟢 BOTS RUNNING"
 
             html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAHIR SQUAD BOT</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAHIR · Control Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-* {{ margin:0; padding:0; box-sizing:border-box; font-family:'Rajdhani',sans-serif; }}
-body {{ background:#030712; color:#f3f4f6; min-height:100vh; padding:20px; background-image: radial-gradient(at 0% 0%, rgba(239,68,68,0.15) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(59,130,246,0.15) 0px, transparent 50%); background-attachment:fixed; }}
-.container {{ max-width:1500px; margin:0 auto; }}
-.header {{ text-align:center; padding:30px; background:rgba(17,24,39,0.7); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.1); border-radius:20px; margin-bottom:25px; }}
-.header h1 {{ font-family:'Orbitron',sans-serif; font-size:2.8em; font-weight:900; background:linear-gradient(135deg,#fff,#ff4b4b 50%,#ff8533); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }}
-.header p {{ margin-top:8px; font-size:1.1em; color:#9ca3af; letter-spacing:2px; font-weight:600; }}
-.stats {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px; margin-bottom:25px; }}
-.stat-card {{ background:rgba(17,24,39,0.6); border:1px solid rgba(255,255,255,0.08); border-radius:18px; padding:20px; text-align:center; }}
-.stat-card h2 {{ font-family:'Orbitron',sans-serif; font-size:2.5em; color:#10b981; }}
-.stat-card p {{ margin-top:5px; font-size:1em; color:#9ca3af; font-weight:700; letter-spacing:1px; }}
-.section {{ background:rgba(17,24,39,0.6); border:1px solid rgba(255,255,255,0.08); border-radius:18px; padding:25px; margin-bottom:25px; }}
-.section-header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px; }}
-.section h2 {{ font-family:'Orbitron',sans-serif; color:#38bdf8; font-size:1.3em; letter-spacing:1.5px; }}
-.live-indicator {{ display:inline-flex; align-items:center; gap:6px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:4px 12px; border-radius:20px; font-size:0.85em; color:#10b981; font-weight:700; }}
-.pulse-dot {{ width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow:0 0 8px #10b981; animation:pulse 1.5s infinite; }}
-@keyframes pulse {{ 0%{{transform:scale(0.95)}} 70%{{transform:scale(1)}} 100%{{transform:scale(0.95)}} }}
-.table-wrapper {{ overflow-x:auto; max-height:500px; overflow-y:auto; border-radius:10px; border:1px solid rgba(255,255,255,0.05); }}
-table {{ width:100%; border-collapse:collapse; text-align:left; }}
-th,td {{ padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:1.05em; white-space:nowrap; }}
-th {{ background:rgba(31,41,55,0.9); color:#f3f4f6; position:sticky; top:0; }}
-.badge-online {{ background:rgba(16,185,129,0.15); color:#10b981; padding:4px 10px; border-radius:6px; font-weight:700; border:1px solid rgba(16,185,129,0.3); }}
-textarea {{ width:100%; background:rgba(15,23,42,0.8); color:#38bdf8; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:15px; font-family:'Courier New',monospace; font-size:14px; resize:vertical; outline:none; }}
-textarea:focus {{ border-color:#38bdf8; }}
-.btn {{ padding:14px 32px; background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; border:none; border-radius:10px; font-size:1.05em; font-weight:700; cursor:pointer; margin-top:15px; letter-spacing:1px; }}
-.btn-green {{ background:linear-gradient(135deg,#10b981,#059669); }}
-.btn-orange {{ background:linear-gradient(135deg,#f97316,#ea580c); }}
-.btn-pink {{ background:linear-gradient(135deg,#ec4899,#be185d); }}
-.btn-blue {{ background:linear-gradient(135deg,#3b82f6,#1d4ed8); }}
-.btn-stop {{ padding:20px 40px; font-size:1.3em; font-weight:900; letter-spacing:2px; border:3px solid rgba(255,255,255,0.2); animation:glow 2s ease-in-out infinite alternate; }}
-@keyframes glow {{ from {{ box-shadow:0 0 20px rgba(220,38,38,0.5); }} to {{ box-shadow:0 0 60px rgba(220,38,38,1); }} }}
-.btn-start {{ padding:20px 40px; font-size:1.3em; font-weight:900; letter-spacing:2px; border:3px solid rgba(255,255,255,0.2); animation:glow-g 2s ease-in-out infinite alternate; }}
-@keyframes glow-g {{ from {{ box-shadow:0 0 20px rgba(16,185,129,0.5); }} to {{ box-shadow:0 0 60px rgba(16,185,129,1); }} }}
-.status-banner {{ text-align:center; padding:18px; border-radius:14px; margin-bottom:18px; font-family:'Orbitron',sans-serif; font-size:1.5em; font-weight:900; letter-spacing:2px; color:#fff; background:{stopped_color}; }}
-.footer {{ text-align:center; padding:20px; color:#6b7280; font-weight:600; }}
-#toast {{ visibility:hidden; min-width:250px; background:#10b981; color:#fff; text-align:center; border-radius:8px; padding:14px; position:fixed; z-index:99; right:30px; bottom:30px; font-weight:bold; opacity:0; transition:opacity 0.3s,bottom 0.3s; }}
-#toast.show {{ visibility:visible; opacity:1; bottom:40px; }}
-.config-grid {{ display:grid; gap:20px; }}
-.config-label {{ color:#9ca3af; font-weight:700; letter-spacing:1px; margin-bottom:8px; }}
-.input-text {{ width:100%; padding:12px 16px; background:rgba(15,23,42,0.8); color:#38bdf8; border:1px solid rgba(255,255,255,0.1); border-radius:10px; font-family:'Courier New',monospace; font-size:15px; outline:none; }}
-.input-text:focus {{ border-color:#38bdf8; }}
-.help-text {{ color:#6b7280; font-size:0.85em; margin-top:6px; }}
-.live-log {{ height:400px; overflow-y:auto; background:#0a0a0a; border-radius:10px; padding:15px; font-family:'Courier New',monospace; font-size:13px; color:#10b981; line-height:1.6; }}
-.action-bar {{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; padding:18px; background:rgba(15,23,42,0.7); border:1px solid rgba(255,255,255,0.08); border-radius:14px; align-items:center; justify-content:center; }}
-.action-bar .btn {{ margin-top:0; }}
-.radio-row {{ display:flex; gap:20px; flex-wrap:wrap; }}
-.radio-chip {{ display:inline-flex; align-items:center; gap:8px; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.3); padding:10px 20px; border-radius:10px; cursor:pointer; }}
-.radio-chip input {{ width:16px; height:16px; accent-color:#38bdf8; }}
+:root {{
+  --bg-0:#05070F; --bg-1:#0A0F1E; --panel:#0F1628; --panel-2:#131B33;
+  --line:#1E2A44; --line-hi:rgba(56,189,248,0.35);
+  --cyan:#22D3EE; --blue:#3B82F6; --violet:#A855F7; --magenta:#EC4899;
+  --green:#10B981; --amber:#F59E0B; --red:#EF4444;
+  --txt:#F8FAFC; --txt-2:#94A3B8; --txt-3:#64748B;
+  --r:16px; --r-sm:10px;
+}}
+*{{margin:0;padding:0;box-sizing:border-box}}
+html{{scroll-behavior:smooth}}
+body{{
+  font-family:'Rajdhani',system-ui,sans-serif;
+  background:var(--bg-0); color:var(--txt); min-height:100vh;
+  overflow-x:hidden; position:relative; font-weight:500;
+}}
+body::before{{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(1000px 700px at -5% -10%, rgba(34,211,238,0.10), transparent 55%),
+    radial-gradient(1000px 700px at 105% 110%, rgba(168,85,247,0.10), transparent 55%),
+    radial-gradient(800px 600px at 50% 50%, rgba(236,72,153,0.05), transparent 70%);
+}}
+body::after{{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(34,211,238,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,211,238,0.028) 1px, transparent 1px);
+  background-size:52px 52px;
+  mask-image:radial-gradient(ellipse at center, black 30%, transparent 92%);
+  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 92%);
+}}
+
+/* ═══ SIDEBAR ═══ */
+.layout{{display:flex; min-height:100vh; position:relative; z-index:1}}
+.sidebar{{
+  width:250px; flex-shrink:0;
+  background:linear-gradient(180deg, rgba(10,15,30,0.98), rgba(5,7,15,0.98));
+  border-right:1px solid var(--line);
+  padding:24px 16px;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+  transition:transform 0.35s cubic-bezier(.4,0,.2,1);
+  z-index:100;
+}}
+.sidebar::-webkit-scrollbar{{width:5px}}
+.sidebar::-webkit-scrollbar-thumb{{background:linear-gradient(180deg, var(--cyan), var(--violet));border-radius:3px}}
+.sb-logo{{display:flex;align-items:center;gap:12px;padding:8px 8px 24px;border-bottom:1px solid var(--line);margin-bottom:20px}}
+.sb-mark{{
+  width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:1.5em;
+  background:linear-gradient(135deg,var(--cyan),var(--violet) 55%,var(--magenta));
+  box-shadow:0 0 24px rgba(34,211,238,0.5), inset 0 0 12px rgba(255,255,255,0.15);
+  animation:logoPulse 3s ease-in-out infinite;
+}}
+@keyframes logoPulse{{50%{{box-shadow:0 0 40px rgba(168,85,247,0.7), inset 0 0 20px rgba(255,255,255,0.25)}}}}
+.sb-logo h2{{
+  font-family:'Orbitron',sans-serif;font-size:1.05em;font-weight:900;letter-spacing:1.8px;line-height:1.1;
+  background:linear-gradient(135deg,#fff,var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}}
+.sb-logo p{{font-size:0.62em;color:var(--txt-3);letter-spacing:2px;text-transform:uppercase;font-weight:700}}
+.sb-nav{{display:flex;flex-direction:column;gap:5px}}
+.sb-link{{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;
+  color:var(--txt-2);text-decoration:none;font-weight:600;font-size:0.92em;letter-spacing:0.5px;
+  cursor:pointer;transition:all 0.22s;border:1px solid transparent;
+}}
+.sb-link:hover{{background:rgba(34,211,238,0.07);color:var(--txt);border-color:rgba(34,211,238,0.15)}}
+.sb-link.active{{
+  background:linear-gradient(90deg,rgba(34,211,238,0.18),rgba(168,85,247,0.12));
+  color:var(--cyan);border-color:rgba(34,211,238,0.4);
+  box-shadow:inset 3px 0 0 var(--cyan),0 0 22px rgba(34,211,238,0.15);
+}}
+.sb-link .ico{{font-size:1.15em;width:22px;text-align:center}}
+
+/* ═══ MAIN ═══ */
+.main{{flex:1;padding:22px 26px 44px;min-width:0}}
+
+/* ═══ TOPBAR ═══ */
+.topbar{{
+  position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:20px 26px;background:linear-gradient(135deg,rgba(15,22,40,0.92),rgba(19,27,51,0.75));
+  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  border:1px solid var(--line);border-radius:var(--r);margin-bottom:20px;flex-wrap:wrap;overflow:hidden;
+}}
+.topbar::before{{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),var(--magenta),transparent);
+  background-size:200% 100%;animation:slide 5s linear infinite;
+}}
+@keyframes slide{{to{{background-position:200% 0}}}}
+.tb-left{{display:flex;align-items:center;gap:14px;flex-wrap:wrap}}
+.tb-right{{display:flex;align-items:center;gap:8px;flex-wrap:wrap}}
+.tb-menu{{display:none;width:38px;height:38px;border-radius:10px;background:rgba(34,211,238,0.08);border:1px solid var(--line-hi);color:var(--cyan);cursor:pointer;font-size:1.15em}}
+.tb-title{{font-family:'Orbitron',sans-serif;font-size:1.1em;font-weight:900;letter-spacing:2px}}
+.tb-title span{{background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
+
+.pill{{
+  display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;
+  font-size:0.7em;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
+  border:1px solid var(--line-hi);background:rgba(34,211,238,0.06);color:var(--cyan);
+}}
+.pill.green{{background:rgba(16,185,129,0.08);color:var(--green);border-color:rgba(16,185,129,0.35)}}
+.pill.red{{background:rgba(239,68,68,0.08);color:var(--red);border-color:rgba(239,68,68,0.35)}}
+.pill.violet{{background:rgba(168,85,247,0.08);color:var(--violet);border-color:rgba(168,85,247,0.35)}}
+.pill.amber{{background:rgba(245,158,11,0.08);color:var(--amber);border-color:rgba(245,158,11,0.35)}}
+.dot{{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor;animation:blink 1.4s infinite}}
+@keyframes blink{{50%{{opacity:0.4;transform:scale(0.85)}}}}
+
+/* ═══ BANNER ═══ */
+.status-banner{{
+  position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:14px;
+  padding:18px 24px;border-radius:var(--r);margin-bottom:22px;
+  font-family:'Orbitron',sans-serif;font-weight:900;letter-spacing:3px;font-size:1em;
+  color:#fff;border:1px solid rgba(255,255,255,0.15);text-transform:uppercase;
+  transition:background 0.4s ease;
+}}
+.status-banner::after{{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+  animation:swipe 3.5s linear infinite;pointer-events:none;
+}}
+@keyframes swipe{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}
+
+/* ═══ STATS ═══ */
+.stats-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:22px}}
+.stat-card{{
+  position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:22px;display:flex;align-items:center;gap:16px;
+  transition:all 0.3s cubic-bezier(.2,.7,.3,1);
+}}
+.stat-card::before{{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 100% 0%,var(--tint,transparent) 0%,transparent 55%);
+  opacity:0.6;pointer-events:none;
+}}
+.stat-card:hover{{transform:translateY(-3px);border-color:var(--line-hi);box-shadow:0 14px 42px rgba(0,0,0,0.4),0 0 34px var(--glow,rgba(34,211,238,0.15))}}
+.stat-ico{{width:52px;height:52px;flex-shrink:0;border-radius:14px;display:grid;place-items:center;font-size:1.45em;background:rgba(255,255,255,0.04);border:1px solid var(--line-hi)}}
+.stat-body{{display:flex;flex-direction:column;gap:3px;min-width:0}}
+.stat-value{{font-family:'Orbitron',sans-serif;font-size:1.85em;font-weight:900;line-height:1;color:var(--vc,var(--cyan));text-shadow:0 0 22px var(--vc,var(--cyan));word-break:break-all}}
+.stat-label{{font-size:0.68em;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-2)}}
+.stat-card.s-green{{--tint:rgba(16,185,129,0.35);--glow:rgba(16,185,129,0.22);--vc:#34D399}}
+.stat-card.s-blue{{--tint:rgba(59,130,246,0.35);--glow:rgba(59,130,246,0.22);--vc:#60A5FA}}
+.stat-card.s-violet{{--tint:rgba(168,85,247,0.35);--glow:rgba(168,85,247,0.22);--vc:#C084FC}}
+.stat-card.s-cyan{{--tint:rgba(34,211,238,0.35);--glow:rgba(34,211,238,0.22);--vc:#22D3EE}}
+
+/* ═══ PANELS ═══ */
+.panel{{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:24px;margin-bottom:20px;transition:border-color 0.3s}}
+.panel:hover{{border-color:var(--line-hi)}}
+.panel-head{{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-bottom:16px;margin-bottom:20px;border-bottom:1px solid var(--line)}}
+.panel-title{{display:flex;align-items:center;gap:12px;font-family:'Orbitron',sans-serif;font-size:0.98em;font-weight:700;letter-spacing:2px;text-transform:uppercase}}
+.panel-ico{{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:1.05em;background:linear-gradient(135deg,rgba(34,211,238,0.18),rgba(168,85,247,0.14));border:1px solid var(--line-hi)}}
+.panel-ico.amber{{background:linear-gradient(135deg,rgba(245,158,11,0.18),rgba(251,146,60,0.14))}}
+.panel-ico.pink{{background:linear-gradient(135deg,rgba(236,72,153,0.18),rgba(168,85,247,0.14))}}
+.panel-ico.green{{background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.14))}}
+.panel-ico.red{{background:linear-gradient(135deg,rgba(239,68,68,0.18),rgba(220,38,38,0.14))}}
+
+/* ═══ BUTTONS ═══ */
+.btn{{
+  position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  padding:13px 24px;border:1px solid rgba(255,255,255,0.12);border-radius:12px;
+  font-family:'Rajdhani',sans-serif;font-size:0.9em;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:#fff;cursor:pointer;
+  transition:transform 0.2s,box-shadow 0.28s,border-color 0.28s;
+  background:linear-gradient(135deg,var(--red),#B91C1C);
+}}
+.btn:hover:not(:disabled){{transform:translateY(-2px);border-color:rgba(255,255,255,0.3);box-shadow:0 12px 30px rgba(0,0,0,0.45)}}
+.btn:disabled{{opacity:0.55;cursor:not-allowed}}
+.btn.green{{background:linear-gradient(135deg,var(--green),#047857)}}
+.btn.amber{{background:linear-gradient(135deg,var(--amber),#D97706)}}
+.btn.pink{{background:linear-gradient(135deg,var(--magenta),#BE185D)}}
+.btn.blue{{background:linear-gradient(135deg,var(--blue),#1D4ED8)}}
+.btn.violet{{background:linear-gradient(135deg,var(--violet),#7E22CE)}}
+.btn.ghost{{background:rgba(255,255,255,0.04);border:1px solid var(--line-hi);color:var(--txt)}}
+.btn.ghost:hover:not(:disabled){{background:rgba(34,211,238,0.08);border-color:var(--cyan)}}
+
+.action-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}}
+.action-tile{{display:flex!important;align-items:center;justify-content:flex-start!important;gap:16px;padding:18px 22px!important;text-transform:none!important;letter-spacing:0!important;min-height:80px;border-radius:14px!important}}
+.action-tile .t-ico{{font-size:1.7em;filter:drop-shadow(0 0 10px rgba(255,255,255,0.4));flex-shrink:0}}
+.action-tile .t-txt{{display:flex;flex-direction:column;gap:3px;text-align:left;min-width:0}}
+.action-tile .t-main{{font-family:'Orbitron',sans-serif;font-size:0.92em;font-weight:900;letter-spacing:1.3px;text-transform:uppercase;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.action-tile .t-sub{{font-size:0.72em;font-weight:600;letter-spacing:0.8px;opacity:0.8;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.action-tile.stop{{background:linear-gradient(135deg,var(--red),#7F1D1D)!important;box-shadow:0 0 30px rgba(239,68,68,0.35)!important;animation:pulseRed 2.4s ease-in-out infinite}}
+.action-tile.start{{background:linear-gradient(135deg,var(--green),#065F46)!important;box-shadow:0 0 30px rgba(16,185,129,0.35)!important;animation:pulseGreen 2.4s ease-in-out infinite}}
+@keyframes pulseRed{{0%,100%{{box-shadow:0 0 24px rgba(239,68,68,0.32)}}50%{{box-shadow:0 0 46px rgba(239,68,68,0.7)}}}}
+@keyframes pulseGreen{{0%,100%{{box-shadow:0 0 24px rgba(16,185,129,0.32)}}50%{{box-shadow:0 0 46px rgba(16,185,129,0.7)}}}}
+.action-tile.amber{{background:linear-gradient(135deg,var(--amber),#C2410C)!important}}
+.action-tile.pink{{background:linear-gradient(135deg,var(--magenta),#9D174D)!important}}
+
+/* ═══ FORMS ═══ */
+.field{{display:flex;flex-direction:column;gap:8px}}
+.field-label{{font-size:0.72em;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-2)}}
+input,textarea,select{{
+  width:100%;padding:13px 15px;
+  background:rgba(5,7,15,0.8);border:1px solid var(--line);
+  border-radius:12px;font-family:'JetBrains Mono',monospace;font-size:0.88em;
+  color:var(--cyan);outline:none;transition:border-color 0.2s,box-shadow 0.2s;
+}}
+input::placeholder,textarea::placeholder{{color:var(--txt-3)}}
+input:focus,textarea:focus{{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,0.12),0 0 24px rgba(34,211,238,0.2)}}
+textarea{{line-height:1.75;resize:vertical;font-size:0.82em}}
+input[type="file"]{{padding:14px;border-style:dashed;cursor:pointer;color:var(--txt-2);font-family:'Rajdhani',sans-serif;font-weight:600}}
+input[type="file"]:hover{{border-color:var(--magenta);color:var(--magenta)}}
+
+.chips{{display:flex;flex-wrap:wrap;gap:10px}}
+.chip{{
+  display:inline-flex;align-items:center;gap:10px;padding:11px 15px;border-radius:12px;
+  border:1px solid var(--line);background:rgba(5,7,15,0.6);color:var(--txt-2);
+  font-weight:600;font-size:0.85em;cursor:pointer;user-select:none;
+  transition:all 0.24s cubic-bezier(.2,.7,.3,1);
+}}
+.chip:hover{{border-color:var(--cyan);background:rgba(34,211,238,0.07);color:var(--txt);transform:translateY(-2px)}}
+.chip:has(input:checked){{
+  border-color:var(--cyan);
+  background:linear-gradient(135deg,rgba(34,211,238,0.18),rgba(168,85,247,0.14));
+  color:var(--txt);box-shadow:0 0 24px rgba(34,211,238,0.28);
+}}
+.chip input{{width:15px;height:15px;accent-color:var(--cyan);cursor:pointer}}
+
+.stack{{display:flex;flex-direction:column;gap:18px}}
+.grid-2{{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
+
+.acc-box{{padding:20px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(135deg,rgba(5,7,15,0.5),rgba(15,22,40,0.4))}}
+.acc-box.cyan{{border-color:rgba(34,211,238,0.3)}}
+.acc-box.pink{{border-color:rgba(236,72,153,0.3)}}
+.acc-box.violet{{border-color:rgba(168,85,247,0.3)}}
+.acc-box.green{{border-color:rgba(16,185,129,0.3)}}
+.acc-box.amber{{border-color:rgba(245,158,11,0.3)}}
+.box-title{{display:flex;align-items:center;gap:10px;font-family:'Orbitron',sans-serif;font-size:0.85em;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}}
+.box-title.cyan{{color:var(--cyan)}}
+.box-title.pink{{color:var(--magenta)}}
+.box-title.violet{{color:var(--violet)}}
+.box-title.green{{color:var(--green)}}
+.box-title.amber{{color:var(--amber)}}
+
+.row{{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}}
+.btn-row{{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}}
+.hint{{color:var(--txt-3);font-size:0.76em;line-height:1.65;font-style:italic;margin-top:6px}}
+.hint b{{color:var(--amber);font-style:normal}}
+.hint code{{background:rgba(168,85,247,0.15);color:#C084FC;padding:2px 7px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:0.9em}}
+
+/* ═══ TABLE ═══ */
+.table-shell{{overflow-x:auto;max-height:480px;overflow-y:auto;border-radius:12px;border:1px solid var(--line);background:rgba(5,7,15,0.55)}}
+.table-shell::-webkit-scrollbar{{width:8px;height:8px}}
+.table-shell::-webkit-scrollbar-thumb{{background:linear-gradient(180deg,var(--cyan),var(--violet));border-radius:4px}}
+table{{width:100%;border-collapse:collapse;text-align:left}}
+th,td{{padding:13px 15px;border-bottom:1px solid var(--line);font-size:0.86em;white-space:nowrap}}
+th{{
+  position:sticky;top:0;z-index:5;
+  background:linear-gradient(180deg,rgba(19,27,51,0.98),rgba(15,22,40,0.98));
+  color:var(--cyan);font-family:'Orbitron',sans-serif;font-size:0.68em;font-weight:700;
+  letter-spacing:1.6px;text-transform:uppercase;
+}}
+tbody tr{{transition:background 0.2s}}
+tbody tr:hover{{background:rgba(34,211,238,0.06)}}
+.badge-live{{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:rgba(16,185,129,0.16);color:var(--green);font-size:0.7em;font-weight:700;letter-spacing:1px;border:1px solid rgba(16,185,129,0.35)}}
+.badge-live::before{{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite}}
+.empty-row td{{text-align:center;padding:40px 20px;color:var(--txt-3);font-style:italic}}
+
+/* ═══ LOG ═══ */
+.log-shell{{
+  height:420px;overflow-y:auto;padding:18px;border-radius:12px;border:1px solid var(--line);
+  background:#02040A;font-family:'JetBrains Mono',monospace;font-size:12px;
+  line-height:1.8;color:#4ADE80;position:relative;
+}}
+.log-shell::before{{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0,transparent 3px,rgba(34,211,238,0.025) 3px,rgba(34,211,238,0.025) 4px);
+  border-radius:12px;
+}}
+.log-shell::-webkit-scrollbar{{width:9px}}
+.log-shell::-webkit-scrollbar-thumb{{background:linear-gradient(180deg,var(--green),var(--cyan));border-radius:5px;border:2px solid #02040A}}
+.log-shell > div{{padding:3px 10px;border-left:2px solid transparent;transition:all 0.18s;word-break:break-word}}
+.log-shell > div:hover{{background:rgba(34,211,238,0.06);border-left-color:var(--cyan)}}
+
+/* ═══ FOOTER ═══ */
+.foot{{text-align:center;padding:24px;color:var(--txt-3);font-size:0.8em;letter-spacing:1.6px;border-top:1px solid var(--line);margin-top:14px}}
+.foot b{{color:var(--cyan)}}
+
+/* ═══ TOAST ═══ */
+.toast{{
+  visibility:hidden;position:fixed;right:22px;bottom:22px;z-index:9999;
+  min-width:280px;max-width:88vw;padding:16px 22px;border-radius:12px;
+  color:#fff;font-weight:700;font-size:0.95em;
+  background:linear-gradient(135deg,var(--green),#059669);
+  box-shadow:0 14px 42px rgba(0,0,0,0.6),0 0 30px rgba(16,185,129,0.4);
+  border:1px solid rgba(255,255,255,0.18);backdrop-filter:blur(14px);
+  opacity:0;transform:translateY(20px);transition:all 0.35s cubic-bezier(.2,.7,.3,1);
+}}
+.toast.show{{visibility:visible;opacity:1;transform:translateY(0)}}
+
+.section{{scroll-margin-top:20px}}
+
+/* ═══ MOBILE ═══ */
+@media (max-width:900px){{
+  .sidebar{{position:fixed;left:0;top:0;transform:translateX(-100%);box-shadow:10px 0 36px rgba(0,0,0,0.7)}}
+  .sidebar.open{{transform:translateX(0)}}
+  .tb-menu{{display:grid;place-items:center}}
+  .main{{padding:14px 14px 44px}}
+  .row{{grid-template-columns:1fr}}
+  .grid-2{{grid-template-columns:1fr}}
+  .tb-title{{font-size:0.95em}}
+  .stat-value{{font-size:1.5em}}
+}}
+@media (max-width:500px){{
+  .stats-grid{{grid-template-columns:1fr 1fr;gap:10px}}
+  .stat-card{{padding:14px;gap:10px}}
+  .stat-ico{{width:40px;height:40px;font-size:1.2em}}
+  .stat-value{{font-size:1.25em}}
+  .stat-label{{font-size:0.6em;letter-spacing:1.2px}}
+  .panel{{padding:16px}}
+  .action-grid{{grid-template-columns:1fr}}
+  .action-tile{{min-height:64px;padding:14px 16px!important}}
+  .action-tile .t-ico{{font-size:1.4em}}
+  .action-tile .t-main{{font-size:0.82em}}
+  .tb-right .pill{{font-size:0.62em;padding:5px 10px}}
+}}
+.overlay{{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99;display:none;backdrop-filter:blur(3px)}}
+.overlay.show{{display:block}}
 </style>
 </head>
 <body>
-<div class="container">
-<div class="header"><h1>🔥 MAHIR SQUAD BOT 🔥</h1><p>⚡ NO FALLBACK · AUTO EMOTE · AUTO ANIM · DUAL RECRUIT · STOP ALL ⚡</p></div>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+<div class="layout">
 
-<div class="status-banner" id="status-banner">{stopped_label}</div>
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-mark">🔥</div>
+      <div>
+        <h2>MAHIR</h2>
+        <p>Squad Bot</p>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <a class="sb-link active" href="#section-dashboard" onclick="navTo(this)"><span class="ico">⚡</span> Dashboard</a>
+      <a class="sb-link" href="#section-accounts" onclick="navTo(this)"><span class="ico">👥</span> Accounts</a>
+      <a class="sb-link" href="#section-config" onclick="navTo(this)"><span class="ico">⚙️</span> Squad Config</a>
+      <a class="sb-link" href="#section-emotes" onclick="navTo(this)"><span class="ico">🎭</span> Emotes</a>
+      <a class="sb-link" href="#section-bots" onclick="navTo(this)"><span class="ico">📋</span> Active Bots</a>
+      <a class="sb-link" href="#section-logs" onclick="navTo(this)"><span class="ico">📜</span> Live Logs</a>
+    </nav>
+  </aside>
 
-<div class="stats">
-<div class="stat-card"><h2 id="stat-online">{cur_online}</h2><p>🟢 ONLINE</p></div>
-<div class="stat-card"><h2 id="stat-total">{cur_total}</h2><p>📊 TOTAL</p></div>
-<div class="stat-card"><h2 id="stat-threads">{cur_threads}</h2><p>⚙️ ACTIVE</p></div>
-<div class="stat-card"><h2 id="stat-version" style="font-size:1.5em;color:#38bdf8;">{FREEFIRE_VERSION_NAME}</h2><p>📦 {CURRENT_OB}</p></div>
-</div>
+  <!-- ═══ MAIN ═══ -->
+  <main class="main">
 
-<div class="section">
-<div class="section-header"><h2>⚡ Quick Actions</h2><div class="live-indicator"><div class="pulse-dot"></div> LIVE</div></div>
-<div class="action-bar">
-<button class="btn btn-stop" id="btn-stop-all" onclick="doStopAll()" style="background:linear-gradient(135deg,#dc2626,#991b1b); display:{'none' if stopped_now else 'block'};">🛑 STOP ALL BOTS</button>
-<button class="btn btn-start" id="btn-start-all" onclick="doStartAll()" style="background:linear-gradient(135deg,#10b981,#059669); display:{'block' if stopped_now else 'none'};">🚀 START ALL BOTS</button>
-</div>
-<div class="action-bar">
-<button class="btn btn-orange" onclick="doAccountRestart()">♻️ ACCOUNT RESTART</button>
-<button class="btn btn-pink" onclick="doSquadRecreate()">🔄 SQUAD RECREATE</button>
-</div>
-</div>
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="tb-left">
+        <button class="tb-menu" onclick="toggleSidebar()">☰</button>
+        <div class="tb-title"><span>CONTROL CENTER</span></div>
+        <span class="pill green"><span class="dot"></span> System Online</span>
+      </div>
+      <div class="tb-right">
+        <span class="pill violet">📦 {FREEFIRE_VERSION_NAME}</span>
+        <span class="pill">{CURRENT_OB}</span>
+      </div>
+    </header>
 
-<div class="section">
-<div class="section-header">
-<h2>👥 Account Manager (accounts.txt)</h2>
-<div class="live-indicator"><div class="pulse-dot"></div> <span id="acc-count">0</span> Accounts</div>
-</div>
-<div class="config-grid">
-<div style="background:rgba(15,23,42,0.5); padding:18px; border-radius:12px; border:1px solid rgba(56,189,248,0.2);">
-<div class="config-label" style="color:#38bdf8; font-size:1.1em;">➕ Add Single Account</div>
-<div style="display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; margin-top:10px;">
-<div><div class="config-label" style="font-size:0.9em;">UID</div>
-<input type="text" id="new-uid" class="input-text" placeholder="e.g. 1234567890"></div>
-<div><div class="config-label" style="font-size:0.9em;">Password</div>
-<input type="text" id="new-pwd" class="input-text" placeholder="account password"></div>
-<button class="btn btn-green" onclick="addSingleAccount()" style="padding:12px 24px;">➕ Add</button>
-</div>
-</div>
+    <!-- STATUS BANNER -->
+    <div class="status-banner" id="status-banner"
+         style="background:{'linear-gradient(135deg,#EF4444,#7F1D1D)' if stopped_now else 'linear-gradient(135deg,#10B981,#065F46)'};">
+      <span>{'🛑 BOTS STOPPED' if stopped_now else '🟢 BOTS RUNNING'}</span>
+    </div>
 
-<div style="background:rgba(15,23,42,0.5); padding:18px; border-radius:12px; border:1px solid rgba(236,72,153,0.2);">
-<div class="config-label" style="color:#ec4899; font-size:1.1em;">📂 Upload TXT File (Bulk)</div>
-<div class="help-text" style="margin-top:6px;">Format: প্রতি লাইনে <b>uid:password</b> অথবা <b>uid|password</b></div>
-<div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-<input type="file" id="acc-file" accept=".txt" style="color:#9ca3af; padding:10px; background:rgba(15,23,42,0.8); border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
-<button class="btn btn-pink" onclick="uploadAccFile()" style="padding:12px 24px; margin-top:0;">📤 Upload & Replace</button>
+    <!-- STATS -->
+    <section class="section" id="section-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card s-green">
+          <div class="stat-ico">🟢</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-online">{cur_online}</div>
+            <div class="stat-label">Online Bots</div>
+          </div>
+        </div>
+        <div class="stat-card s-blue">
+          <div class="stat-ico">📊</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-total">{cur_total}</div>
+            <div class="stat-label">Total Accounts</div>
+          </div>
+        </div>
+        <div class="stat-card s-violet">
+          <div class="stat-ico">⚙️</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-threads">{cur_threads}</div>
+            <div class="stat-label">Active Threads</div>
+          </div>
+        </div>
+        <div class="stat-card s-cyan">
+          <div class="stat-ico">📦</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-version" style="font-size:1.15em;">{FREEFIRE_VERSION_NAME}</div>
+            <div class="stat-label">{CURRENT_OB} · Build</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUICK ACTIONS -->
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-ico amber">⚡</div> Quick Actions</div>
+        <span class="pill green"><span class="dot"></span> Live</span>
+      </div>
+      <div class="action-grid">
+        <button class="btn action-tile stop" id="btn-stop-all" onclick="doStopAll()" style="display:{'none' if stopped_now else 'inline-flex'};">
+          <span class="t-ico">🛑</span>
+          <span class="t-txt"><span class="t-main">Stop All Bots</span><span class="t-sub">Disconnect every bot</span></span>
+        </button>
+        <button class="btn action-tile start" id="btn-start-all" onclick="doStartAll()" style="display:{'inline-flex' if stopped_now else 'none'};">
+          <span class="t-ico">🚀</span>
+          <span class="t-txt"><span class="t-main">Start All Bots</span><span class="t-sub">Resume every account</span></span>
+        </button>
+        <button class="btn action-tile amber" onclick="doAccountRestart()">
+          <span class="t-ico">♻️</span>
+          <span class="t-txt"><span class="t-main">Account Restart</span><span class="t-sub">Reconnect all bots</span></span>
+        </button>
+        <button class="btn action-tile pink" onclick="doSquadRecreate()">
+          <span class="t-ico">🔄</span>
+          <span class="t-txt"><span class="t-main">Squad Recreate</span><span class="t-sub">Rebuild every squad</span></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ACCOUNT MANAGER -->
+    <section class="panel section" id="section-accounts">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-ico">👥</div> Account Manager</div>
+        <span class="pill"><span class="dot"></span> <span id="acc-count">0</span> Accounts</span>
+      </div>
+      <div class="stack">
+        <div class="acc-box cyan">
+          <div class="box-title cyan">➕ Add Single Account</div>
+          <div class="row">
+            <div class="field"><label class="field-label">UID</label><input type="text" id="new-uid" placeholder="e.g. 1234567890"></div>
+            <div class="field"><label class="field-label">Password</label><input type="text" id="new-pwd" placeholder="Account Password"></div>
+            <button class="btn green" onclick="addSingleAccount()">➕ Add</button>
+          </div>
+        </div>
+        <div class="acc-box pink">
+          <div class="box-title pink">📂 Upload TXT (Bulk)</div>
+          <div class="hint">Format: প্রতি লাইনে <b>uid:password</b> অথবা <b>uid|password</b></div>
+          <div class="row" style="grid-template-columns:1fr auto; margin-top:10px;">
+            <input type="file" id="acc-file" accept=".txt">
+            <button class="btn pink" onclick="uploadAccFile()">📤 Upload & Replace</button>
+          </div>
+        </div>
+        <div class="acc-box violet">
+          <div class="box-title violet">✏️ Edit / View All Accounts</div>
+          <textarea id="acc-content" style="height:240px; color:#4ADE80; background:#02040A;" spellcheck="false"></textarea>
+          <div class="hint">Format: <b>uid:password</b> প্রতি লাইনে · <code>#</code> দিয়ে comment</div>
+          <div class="btn-row">
+            <button class="btn green" onclick="saveAllAccounts()" id="acc-save-btn">💾 Save All</button>
+            <button class="btn amber" onclick="reloadAccounts()">🔄 Reload</button>
+            <button class="btn blue" onclick="downloadAccounts()">📥 Download TXT</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SQUAD CONFIG -->
+    <section class="panel section" id="section-config">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-ico green">⚙️</div> Squad Configuration</div>
+        <span class="pill violet"><span class="dot"></span> Auto Save</span>
+      </div>
+      <form id="squad-form" onsubmit="saveSquadConfig(event)">
+        <div class="stack">
+          <div class="field">
+            <label class="field-label">👥 Squad Size</label>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="squad_size" value="3" {'checked' if cur_size==3 else ''}><span>4 Players</span></label>
+              <label class="chip"><input type="radio" name="squad_size" value="4" {'checked' if cur_size==4 else ''}><span>5 Players</span></label>
+              <label class="chip"><input type="radio" name="squad_size" value="5" {'checked' if cur_size==5 else ''}><span>6 Players</span></label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">📢 World Recruit Type</label>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="world_recruit_type" value="1" {'checked' if cur_recruit_type=="1" else ''}><span>Type 1</span></label>
+              <label class="chip"><input type="radio" name="world_recruit_type" value="2" {'checked' if cur_recruit_type=="2" else ''}><span>Type 2</span></label>
+              <label class="chip"><input type="radio" name="world_recruit_type" value="half" {'checked' if cur_recruit_type=="half" else ''}><span>Half</span></label>
+              <label class="chip"><input type="radio" name="world_recruit_type" value="random" {'checked' if cur_recruit_type=="random" else ''}><span>Random</span></label>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label class="field-label">📢 Recruit Count</label><input type="number" min="1" max="10" id="world_recruit_count" value="{cur_recruit}"></div>
+            <div class="field"><label class="field-label">⏱️ Squad Lifetime (sec)</label><input type="number" min="5" max="3600" id="squad_lifetime_sec" value="{cur_lifetime}"></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label class="field-label">✨ Animation Interval (sec)</label><input type="number" min="5" max="300" id="animation_interval_sec" value="{cur_anim_int}"></div>
+            <div class="field"><label class="field-label">👗 Bundle Count</label><input type="number" min="1" max="5" id="bundle_count_on_join" value="{rc_bundle_count}"></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label class="field-label">⏱️ Recruit Delay (sec)</label><input type="number" min="0.5" max="30" step="0.5" id="recruit_delay_sec" value="{rc_delay}"></div>
+            <div class="field"><label class="field-label">🎭 Emote Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="emote_join_delay_sec" value="{cur_emote_delay}"></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label class="field-label">💬 Welcome Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="welcome_delay_sec" value="{cur_welcome_delay}"></div>
+            <div class="field"><label class="field-label">🚫 Kick Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="kick_delay_sec" value="{cur_kick_delay}"></div>
+          </div>
+          <div class="field"><label class="field-label">🚫 Kick Message</label><input type="text" id="kick_msg" value="{kick_msg_esc}"></div>
+          <div class="field">
+            <label class="field-label">🔧 Feature Toggles</label>
+            <div class="chips">
+              <label class="chip"><input type="checkbox" id="auto_recreate_chk" {'checked' if cur_auto else ''}><span>🔁 Auto Recreate</span></label>
+              <label class="chip"><input type="checkbox" id="auto_recruit_on_join_chk" {'checked' if rc_join else ''}><span>🟢 Recruit on Join</span></label>
+              <label class="chip"><input type="checkbox" id="auto_recruit_on_leave_chk" {'checked' if rc_leave else ''}><span>🔴 Recruit on Leave</span></label>
+              <label class="chip"><input type="checkbox" id="auto_bundle_on_join_chk" {'checked' if rc_bundle else ''}><span>👗 Bundle on Join</span></label>
+              <label class="chip"><input type="checkbox" id="auto_emote_on_join_chk" {'checked' if cur_emote_join else ''}><span>🎭 Emote on Join</span></label>
+              <label class="chip"><input type="checkbox" id="auto_animation_chk" {'checked' if cur_anim else ''}><span>✨ Auto Animation</span></label>
+              <label class="chip"><input type="checkbox" id="auto_welcome_on_join_chk" {'checked' if cur_welcome_join else ''}><span>💬 Welcome on Join</span></label>
+              <label class="chip"><input type="checkbox" id="auto_kick_on_join_chk" {'checked' if cur_kick_join else ''}><span>🚫 Auto Kick on Join</span></label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">💬 Welcome Message</label>
+            <textarea id="welcome_msg_ta" style="height:170px; color:#F59E0B;" spellcheck="false">{welcome_esc}</textarea>
+            <div class="hint">Placeholder: <b>{{user_name}}</b></div>
+          </div>
+          <button type="submit" class="btn green" id="squad-save-btn" style="padding:15px; width:100%;">💾 Save Squad Config</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- EMOTE MANAGER -->
+    <section class="panel section" id="section-emotes">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-ico pink">🎭</div> Emote Manager</div>
+        <span class="pill amber"><span class="dot"></span> Web Editable</span>
+      </div>
+      <div class="stack">
+        <div class="acc-box cyan">
+          <div class="box-title cyan">🎭 Join Emote Pool</div>
+          <div class="hint">Member join হলে এই emote গুলোর যেকোনো একটি random ভাবে পাঠাবে। Comma দিয়ে separate করুন।</div>
+          <textarea id="join_emote_pool" style="height:80px; color:#22D3EE; margin-top:10px;" spellcheck="false" placeholder="909049013,909045010,909000020">{join_emote_csv}</textarea>
+          <div class="hint">উদাহরণ: <code>909049013, 909045010, 909000020</code></div>
+        </div>
+        <div class="acc-box green">
+          <div class="box-title green">🤖 Bot Self-Emote</div>
+          <div class="hint">Bot নিজের উপর period ভিত্তিক emote পাঠাবে। Nice for activity।</div>
+          <div class="chips" style="margin-top:10px;">
+            <label class="chip"><input type="checkbox" id="bot_self_emote_enabled" {'checked' if cur_self_emote else ''}><span>🤖 Enable Self-Emote</span></label>
+          </div>
+          <div class="field" style="margin-top:12px;">
+            <label class="field-label">⏱️ Self-Emote Interval (sec)</label>
+            <input type="number" min="1" max="300" step="0.5" id="bot_self_emote_interval" value="{cur_self_emote_int}">
+          </div>
+          <div class="field" style="margin-top:12px;">
+            <label class="field-label">🎭 Self-Emote Pool</label>
+            <textarea id="bot_self_emote_pool" style="height:80px; color:#10B981;" spellcheck="false" placeholder="909049013,909045010">{self_emote_csv}</textarea>
+            <div class="hint">Comma দিয়ে separate করুন। <b>Interval</b> পরে random একটি পাঠাবে।</div>
+          </div>
+        </div>
+        <button type="button" class="btn pink" onclick="saveEmotePool()" id="emote-save-btn" style="padding:15px; width:100%;">💾 Save Emote Pool</button>
+      </div>
+    </section>
+
+    <!-- ACTIVE BOTS -->
+    <section class="panel section" id="section-bots">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-ico">📋</div> Active Bots</div>
+        <span class="pill green"><span class="dot"></span> Live</span>
+      </div>
+      <div class="table-shell">
+        <table>
+          <thead><tr>
+            <th>Bot UID</th><th>UID</th><th>Name</th><th>Region</th>
+            <th>Squad ID</th><th>Members</th><th>Time</th><th>Status</th>
+          </tr></thead>
+          <tbody id="accounts-tbody">
+            <tr class="empty-row"><td colspan="8">🔄 Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- LIVE LOG -->
+    <section class="panel section" id="section-logs">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-ico red">📜</div> Live Log</div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn ghost" onclick="clearLogView()" style="padding:8px 16px; font-size:0.8em;">🗑️ Clear</button>
+          <span class="pill green"><span class="dot"></span> Auto-Sync</span>
+        </div>
+      </div>
+      <div id="live-log" class="log-shell">📡 Waiting for logs...</div>
+    </section>
+
+    <footer class="foot">© 2026 <b>MAHIR SQUAD BOT</b> · Premium Cyberpunk Edition</footer>
+  </main>
 </div>
-</div>
-
-<div>
-<div class="config-label" style="font-size:1.1em;">✏️ Edit / View All Accounts (Raw TXT)</div>
-<textarea id="acc-content" style="height:300px; color:#10b981; background:#0a0a0a;" spellcheck="false"></textarea>
-<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
-<button class="btn btn-green" onclick="saveAllAccounts()" id="acc-save-btn">💾 Save All</button>
-<button class="btn btn-orange" onclick="reloadAccounts()">🔄 Reload from Server</button>
-<button class="btn btn-blue" onclick="downloadAccounts()">📥 Download TXT</button>
-</div>
-</div>
-</div>
-</div>
-
-<div class="section">
-<div class="section-header"><h2>⚙️ Squad Configuration</h2></div>
-<form id="squad-form" onsubmit="saveSquadConfig(event)">
-<div class="config-grid">
-
-<div>
-<div class="config-label">👥 Squad Size</div>
-<div class="radio-row">
-<label class="radio-chip"><input type="radio" name="squad_size" value="3" {"checked" if cur_size==3 else ""}><span>4 Players</span></label>
-<label class="radio-chip"><input type="radio" name="squad_size" value="4" {"checked" if cur_size==4 else ""}><span>5 Players</span></label>
-<label class="radio-chip"><input type="radio" name="squad_size" value="5" {"checked" if cur_size==5 else ""}><span>6 Players</span></label>
-</div>
-</div>
-
-<div>
-<div class="config-label">📢 World Recruit Packet Type</div>
-<div class="radio-row">
-<label class="radio-chip"><input type="radio" name="world_recruit_type" value="1" {"checked" if cur_recruit_type=="1" else ""}><span>Type 1</span></label>
-<label class="radio-chip"><input type="radio" name="world_recruit_type" value="2" {"checked" if cur_recruit_type=="2" else ""}><span>Type 2</span></label>
-<label class="radio-chip"><input type="radio" name="world_recruit_type" value="half" {"checked" if cur_recruit_type=="half" else ""}><span>Half / Half</span></label>
-<label class="radio-chip"><input type="radio" name="world_recruit_type" value="random" {"checked" if cur_recruit_type=="random" else ""}><span>Random</span></label>
-</div>
-</div>
-
-<div><div class="config-label">📢 World Recruit Count</div>
-<input type="number" min="1" max="10" class="input-text" id="world_recruit_count" value="{cur_recruit}"></div>
-
-<div><div class="config-label">⏱️ Squad Lifetime (sec)</div>
-<input type="number" min="5" max="3600" class="input-text" id="squad_lifetime_sec" value="{cur_lifetime}"></div>
-
-<div><label class="radio-chip" style="padding:10px 16px;">
-<input type="checkbox" id="auto_recreate_chk" {"checked" if cur_auto else ""}>
-<span>🔁 Auto Recreate</span></label></div>
-
-<div><label class="radio-chip" style="padding:10px 16px;">
-<input type="checkbox" id="auto_recruit_on_join_chk" {"checked" if rc_join else ""}>
-<span>🟢 Auto Recruit on JOIN</span></label></div>
-
-<div><label class="radio-chip" style="padding:10px 16px;">
-<input type="checkbox" id="auto_recruit_on_leave_chk" {"checked" if rc_leave else ""}>
-<span>🔴 Auto Recruit on LEAVE</span></label></div>
-
-<div><label class="radio-chip" style="padding:10px 16px;">
-<input type="checkbox" id="auto_bundle_on_join_chk" {"checked" if rc_bundle else ""}>
-<span>👗 Auto Bundle on JOIN</span></label></div>
-
-<div><label class="radio-chip" style="padding:10px 16px;">
-<input type="checkbox" id="auto_emote_on_join_chk" {"checked" if cur_emote_join else ""}>
-<span>🎭 Auto Emote on JOIN (0.5s)</span></label></div>
-
-<div><label class="radio-chip" style="padding:10px 16px;">
-<input type="checkbox" id="auto_animation_chk" {"checked" if cur_anim else ""}>
-<span>✨ Auto Animation</span></label></div>
-
-<div><div class="config-label">✨ Animation Interval (sec)</div>
-<input type="number" min="5" max="300" class="input-text" id="animation_interval_sec" value="{cur_anim_int}"></div>
-
-<div><div class="config-label">👗 Bundle Count (on join)</div>
-<input type="number" min="1" max="5" class="input-text" id="bundle_count_on_join" value="{rc_bundle_count}"></div>
-
-<div><div class="config-label">⏱️ Recruit Delay (sec)</div>
-<input type="number" min="0.5" max="30" step="0.5" class="input-text" id="recruit_delay_sec" value="{rc_delay}"></div>
-
-<div><div class="config-label">💬 Welcome Message</div>
-<textarea id="welcome_msg_ta" style="height:200px; color:#facc15;" spellcheck="false">{welcome_esc}</textarea>
-<div class="help-text">Placeholder: <b>{{user_name}}</b></div></div>
-
-<button type="submit" class="btn btn-green" id="squad-save-btn">💾 SAVE SQUAD CONFIG</button>
-</div>
-</form>
-</div>
-
-<div class="section">
-<div class="section-header">
-<h2>📋 Active Bots</h2>
-<div class="live-indicator"><div class="pulse-dot"></div> LIVE</div>
-</div>
-<div class="table-wrapper">
-<table>
-<thead><tr>
-<th>BOT UID</th><th>UID</th><th>NAME</th><th>REGION</th>
-<th>SQUAD ID</th><th>MEMBERS</th><th>TIME</th><th>STATUS</th>
-</tr></thead>
-<tbody id="accounts-tbody"><tr><td colspan="8">🔄 Loading...</td></tr></tbody>
-</table>
-</div>
-</div>
-
-<div class="section">
-<div class="section-header">
-<h2>📜 Live Log</h2>
-<button class="btn" onclick="clearLogView()" style="margin-top:0;padding:8px 16px;background:linear-gradient(135deg,#ef4444,#dc2626);">🗑️ CLEAR</button>
-<div class="live-indicator"><div class="pulse-dot"></div> AUTO-SYNC</div>
-</div>
-<div id="live-log" class="live-log">📡 Waiting for logs...</div>
-</div>
-
-<div class="footer"><p>© 2026 MAHIR SQUAD BOT · NO FALLBACK · Stop All</p></div>
-</div>
-<div id="toast"></div>
+<div class="toast" id="toast"></div>
 
 <script>
-let CURRENT_STOPPED = {stopped_str};
+let CURRENT_STOPPED = {str(stopped_now).lower()};
 
+function toggleSidebar() {{
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}}
+function navTo(el) {{
+  document.querySelectorAll('.sb-link').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+  if (window.innerWidth <= 900) toggleSidebar();
+}}
 function showToast(msg, color) {{
-const t = document.getElementById('toast');
-t.innerText = msg; t.style.background = color || '#10b981';
-t.className = 'show';
-setTimeout(() => {{ t.className = t.className.replace('show',''); }}, 3000);
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  if (color) t.style.background = `linear-gradient(135deg, ${{color}}, ${{color}}cc)`;
+  else t.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+  t.classList.add('show');
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => t.classList.remove('show'), 3500);
 }}
-
 async function doStopAll() {{
-if (!confirm('🛑 Stop ALL BOTS?')) return;
-const btn = document.getElementById('btn-stop-all');
-btn.innerText = '⏳ STOPPING...'; btn.disabled = true;
-try {{
-const r = await fetch('/stop_all_bots', {{method:'POST'}});
-if (r.ok) {{ showToast('🛑 ALL BOTS STOPPED!', '#ef4444'); await refreshStatus(); }}
-else {{ showToast('❌ Failed', '#ef4444'); }}
-}} catch(e) {{ showToast('❌ Error', '#ef4444'); }}
-btn.innerText = '🛑 STOP ALL BOTS'; btn.disabled = false;
+  if (!confirm('🛑 Stop ALL BOTS?')) return;
+  const b = document.getElementById('btn-stop-all');
+  b.disabled = true;
+  try {{
+    const r = await fetch('/stop_all_bots', {{method:'POST'}});
+    if (r.ok) {{ showToast('🛑 All Bots Stopped!', '#EF4444'); await refreshStatus(); }}
+    else showToast('❌ Failed', '#EF4444');
+  }} catch(e) {{ showToast('❌ Network Error', '#EF4444'); }}
+  b.disabled = false;
 }}
-
 async function doStartAll() {{
-if (!confirm('🚀 Start ALL BOTS?')) return;
-const btn = document.getElementById('btn-start-all');
-btn.innerText = '⏳ STARTING...'; btn.disabled = true;
-try {{
-const r = await fetch('/start_all_bots', {{method:'POST'}});
-if (r.ok) {{ showToast('🚀 ALL BOTS STARTING!', '#10b981'); await refreshStatus(); }}
-else {{ showToast('❌ Failed', '#ef4444'); }}
-}} catch(e) {{ showToast('❌ Error', '#ef4444'); }}
-btn.innerText = '🚀 START ALL BOTS'; btn.disabled = false;
+  if (!confirm('🚀 Start ALL BOTS?')) return;
+  const b = document.getElementById('btn-start-all');
+  b.disabled = true;
+  try {{
+    const r = await fetch('/start_all_bots', {{method:'POST'}});
+    if (r.ok) {{ showToast('🚀 All Bots Starting!', '#10B981'); await refreshStatus(); }}
+    else showToast('❌ Failed', '#EF4444');
+  }} catch(e) {{ showToast('❌ Network Error', '#EF4444'); }}
+  b.disabled = false;
 }}
-
 async function refreshStatus() {{
-try {{
-const r = await fetch('/api/status');
-if (!r.ok) return;
-const d = await r.json();
-CURRENT_STOPPED = d.stopped;
-updateStatusUI();
-}} catch(e) {{}}
+  try {{
+    const r = await fetch('/api/status');
+    if (!r.ok) return;
+    const d = await r.json();
+    CURRENT_STOPPED = d.stopped;
+    updateStatusUI();
+  }} catch(e) {{}}
 }}
-
 function updateStatusUI() {{
-const banner = document.getElementById('status-banner');
-const stopBtn = document.getElementById('btn-stop-all');
-const startBtn = document.getElementById('btn-start-all');
-if (CURRENT_STOPPED) {{
-banner.innerText = '🛑 BOTS STOPPED';
-banner.style.background = '#ef4444';
-stopBtn.style.display = 'none';
-startBtn.style.display = 'block';
-}} else {{
-banner.innerText = '🟢 BOTS RUNNING';
-banner.style.background = '#10b981';
-stopBtn.style.display = 'block';
-startBtn.style.display = 'none';
+  const banner = document.getElementById('status-banner');
+  const sb = document.getElementById('btn-stop-all');
+  const stb = document.getElementById('btn-start-all');
+  if (CURRENT_STOPPED) {{
+    banner.innerText = '🛑 BOTS STOPPED';
+    banner.style.background = 'linear-gradient(135deg,#EF4444,#7F1D1D)';
+    sb.style.display = 'none';
+    stb.style.display = 'inline-flex';
+  }} else {{
+    banner.innerText = '🟢 BOTS RUNNING';
+    banner.style.background = 'linear-gradient(135deg,#10B981,#065F46)';
+    sb.style.display = 'inline-flex';
+    stb.style.display = 'none';
+  }}
 }}
-}}
-
 async function doAccountRestart() {{
-if (!confirm('Restart ALL accounts?')) return;
-try {{ const r = await fetch('/restart_accounts', {{method:'POST'}});
-if (r.ok) showToast('♻️ Account Restart Triggered!'); }} catch(e) {{ showToast('❌ Error','#ef4444'); }}
+  if (!confirm('♻️ Restart ALL accounts?')) return;
+  try {{
+    const r = await fetch('/restart_accounts', {{method:'POST'}});
+    if (r.ok) showToast('♻️ Account Restart Triggered!', '#F59E0B');
+  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
 }}
-
 async function doSquadRecreate() {{
-if (!confirm('Recreate ALL squads?')) return;
-try {{ const r = await fetch('/recreate_squads', {{method:'POST'}});
-if (r.ok) showToast('🔄 Squad Recreate Triggered!'); }} catch(e) {{ showToast('❌ Error','#ef4444'); }}
+  if (!confirm('🔄 Recreate ALL squads?')) return;
+  try {{
+    const r = await fetch('/recreate_squads', {{method:'POST'}});
+    if (r.ok) showToast('🔄 Squad Recreate Triggered!', '#EC4899');
+  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
 }}
-
 async function saveSquadConfig(e) {{
-e.preventDefault();
-const btn = document.getElementById('squad-save-btn');
-btn.innerText = '⏳...'; btn.disabled = true;
-const form = document.getElementById('squad-form');
-const size = form.querySelector('input[name="squad_size"]:checked').value;
-const recruitType = form.querySelector('input[name="world_recruit_type"]:checked').value;
-const body = new URLSearchParams();
-body.append('squad_size', size);
-body.append('world_recruit_type', recruitType);
-body.append('world_recruit_count', document.getElementById('world_recruit_count').value);
-body.append('squad_lifetime_sec', document.getElementById('squad_lifetime_sec').value);
-body.append('auto_recreate', document.getElementById('auto_recreate_chk').checked ? '1' : '0');
-body.append('auto_recruit_on_join', document.getElementById('auto_recruit_on_join_chk').checked ? '1' : '0');
-body.append('auto_recruit_on_leave', document.getElementById('auto_recruit_on_leave_chk').checked ? '1' : '0');
-body.append('auto_bundle_on_join', document.getElementById('auto_bundle_on_join_chk').checked ? '1' : '0');
-body.append('auto_emote_on_join', document.getElementById('auto_emote_on_join_chk').checked ? '1' : '0');
-body.append('auto_animation', document.getElementById('auto_animation_chk').checked ? '1' : '0');
-body.append('animation_interval_sec', document.getElementById('animation_interval_sec').value);
-body.append('bundle_count_on_join', document.getElementById('bundle_count_on_join').value);
-body.append('recruit_delay_sec', document.getElementById('recruit_delay_sec').value);
-body.append('welcome_msg', document.getElementById('welcome_msg_ta').value);
-const r = await fetch('/save_squad_config', {{method:'POST', headers:{{'Content-Type':'application/x-www-form-urlencoded'}}, body: body.toString()}});
-if (r.ok) showToast('⚙️ Saved!');
-btn.innerText = '💾 SAVE SQUAD CONFIG'; btn.disabled = false;
+  e.preventDefault();
+  const btn = document.getElementById('squad-save-btn');
+  btn.disabled = true; btn.innerText = '⏳ Saving...';
+  const form = document.getElementById('squad-form');
+  const size = form.querySelector('input[name="squad_size"]:checked').value;
+  const rtype = form.querySelector('input[name="world_recruit_type"]:checked').value;
+  const body = new URLSearchParams();
+  body.append('squad_size', size);
+  body.append('world_recruit_type', rtype);
+  body.append('world_recruit_count', document.getElementById('world_recruit_count').value);
+  body.append('squad_lifetime_sec', document.getElementById('squad_lifetime_sec').value);
+  body.append('animation_interval_sec', document.getElementById('animation_interval_sec').value);
+  body.append('bundle_count_on_join', document.getElementById('bundle_count_on_join').value);
+  body.append('recruit_delay_sec', document.getElementById('recruit_delay_sec').value);
+  body.append('emote_join_delay_sec', document.getElementById('emote_join_delay_sec').value);
+  body.append('welcome_delay_sec', document.getElementById('welcome_delay_sec').value);
+  body.append('kick_delay_sec', document.getElementById('kick_delay_sec').value);
+  body.append('kick_msg', document.getElementById('kick_msg').value);
+  body.append('auto_recreate', document.getElementById('auto_recreate_chk').checked ? '1' : '0');
+  body.append('auto_recruit_on_join', document.getElementById('auto_recruit_on_join_chk').checked ? '1' : '0');
+  body.append('auto_recruit_on_leave', document.getElementById('auto_recruit_on_leave_chk').checked ? '1' : '0');
+  body.append('auto_bundle_on_join', document.getElementById('auto_bundle_on_join_chk').checked ? '1' : '0');
+  body.append('auto_emote_on_join', document.getElementById('auto_emote_on_join_chk').checked ? '1' : '0');
+  body.append('auto_animation', document.getElementById('auto_animation_chk').checked ? '1' : '0');
+  body.append('auto_welcome_on_join', document.getElementById('auto_welcome_on_join_chk').checked ? '1' : '0');
+  body.append('auto_kick_on_join', document.getElementById('auto_kick_on_join_chk').checked ? '1' : '0');
+  body.append('welcome_msg', document.getElementById('welcome_msg_ta').value);
+  try {{
+    const r = await fetch('/save_squad_config', {{method:'POST', headers:{{'Content-Type':'application/x-www-form-urlencoded'}}, body: body.toString()}});
+    if (r.ok) showToast('⚙️ Squad Config Saved!', '#10B981');
+    else showToast('❌ Save failed', '#EF4444');
+  }} catch(err) {{ showToast('❌ Error', '#EF4444'); }}
+  btn.disabled = false; btn.innerText = '💾 Save Squad Config';
 }}
-
+async function saveEmotePool() {{
+  const btn = document.getElementById('emote-save-btn');
+  btn.disabled = true; btn.innerText = '⏳ Saving...';
+  const body = new URLSearchParams();
+  body.append('join_emote_pool', document.getElementById('join_emote_pool').value);
+  body.append('bot_self_emote_pool', document.getElementById('bot_self_emote_pool').value);
+  body.append('bot_self_emote_enabled', document.getElementById('bot_self_emote_enabled').checked ? '1' : '0');
+  body.append('bot_self_emote_interval', document.getElementById('bot_self_emote_interval').value);
+  try {{
+    const r = await fetch('/save_emote_pool', {{method:'POST', headers:{{'Content-Type':'application/x-www-form-urlencoded'}}, body: body.toString()}});
+    if (r.ok) showToast('🎭 Emote Pool Saved!', '#EC4899');
+    else showToast('❌ Save failed', '#EF4444');
+  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
+  btn.disabled = false; btn.innerText = '💾 Save Emote Pool';
+}}
 async function loadAccountsList() {{
-try {{
-const r = await fetch('/api/accounts');
-if (!r.ok) return;
-const d = await r.json();
-document.getElementById('acc-content').value = d.content || '';
-document.getElementById('acc-count').innerText = d.count || 0;
-}} catch(e) {{}}
+  try {{
+    const r = await fetch('/api/accounts');
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('acc-content').value = d.content || '';
+    document.getElementById('acc-count').innerText = d.count || 0;
+  }} catch(e) {{}}
 }}
-
 async function addSingleAccount() {{
-const uid = document.getElementById('new-uid').value.trim();
-const pwd = document.getElementById('new-pwd').value.trim();
-if (!uid || !pwd) {{ showToast('❌ UID/Password দিন', '#ef4444'); return; }}
-if (!/^\\d+$/.test(uid)) {{ showToast('❌ UID শুধু number', '#ef4444'); return; }}
-try {{
-const body = new URLSearchParams();
-body.append('uid', uid);
-body.append('password', pwd);
-const r = await fetch('/add_account', {{method:'POST', body: body.toString()}});
-if (r.ok) {{
-showToast('✅ Account যোগ হয়েছে!');
-document.getElementById('new-uid').value = '';
-document.getElementById('new-pwd').value = '';
-await loadAccountsList();
-}} else {{ showToast('❌ ব্যর্থ', '#ef4444'); }}
-}} catch(e) {{ showToast('❌ Error', '#ef4444'); }}
+  const uid = document.getElementById('new-uid').value.trim();
+  const pwd = document.getElementById('new-pwd').value.trim();
+  if (!uid || !pwd) {{ showToast('❌ UID / Password দিন', '#EF4444'); return; }}
+  if (!/^[0-9]+$/.test(uid)) {{ showToast('❌ UID শুধু number', '#EF4444'); return; }}
+  try {{
+    const body = new URLSearchParams();
+    body.append('uid', uid); body.append('password', pwd);
+    const r = await fetch('/add_account', {{method:'POST', body: body.toString()}});
+    if (r.ok) {{
+      showToast('✅ Account যোগ হয়েছে!', '#10B981');
+      document.getElementById('new-uid').value = '';
+      document.getElementById('new-pwd').value = '';
+      await loadAccountsList();
+    }} else showToast('❌ Failed', '#EF4444');
+  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
 }}
-
 async function saveAllAccounts() {{
-const content = document.getElementById('acc-content').value;
-const btn = document.getElementById('acc-save-btn');
-btn.innerText = '⏳ Saving...'; btn.disabled = true;
-try {{
-const body = new URLSearchParams();
-body.append('content', content);
-const r = await fetch('/save_accounts', {{method:'POST', body: body.toString()}});
-if (r.ok) {{ const res = await r.text(); showToast('💾 ' + res); await loadAccountsList(); }}
-else {{ showToast('❌ Save fail', '#ef4444'); }}
-}} catch(e) {{ showToast('❌ Error', '#ef4444'); }}
-btn.innerText = '💾 Save All'; btn.disabled = false;
+  const content = document.getElementById('acc-content').value;
+  const btn = document.getElementById('acc-save-btn');
+  btn.disabled = true; btn.innerText = '⏳ Saving...';
+  try {{
+    const body = new URLSearchParams();
+    body.append('content', content);
+    const r = await fetch('/save_accounts', {{method:'POST', body: body.toString()}});
+    if (r.ok) {{
+      const res = await r.text();
+      showToast('💾 ' + res, '#10B981');
+      await loadAccountsList();
+    }} else showToast('❌ Save failed', '#EF4444');
+  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
+  btn.disabled = false; btn.innerText = '💾 Save All';
 }}
-
-async function reloadAccounts() {{ await loadAccountsList(); showToast('🔄 Reloaded'); }}
-
+async function reloadAccounts() {{
+  await loadAccountsList();
+  showToast('🔄 Reloaded', '#3B82F6');
+}}
 function downloadAccounts() {{
-const content = document.getElementById('acc-content').value;
-const blob = new Blob([content], {{type: 'text/plain'}});
-const a = document.createElement('a');
-a.href = URL.createObjectURL(blob);
-a.download = 'accounts.txt';
-a.click();
-URL.revokeObjectURL(a.href);
-showToast('📥 Downloaded!');
+  const content = document.getElementById('acc-content').value;
+  const blob = new Blob([content], {{type: 'text/plain'}});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'accounts.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('📥 Downloaded!', '#22D3EE');
 }}
-
 async function uploadAccFile() {{
-const fileInput = document.getElementById('acc-file');
-if (!fileInput.files || !fileInput.files[0]) {{ showToast('❌ File select করুন', '#ef4444'); return; }}
-const file = fileInput.files[0];
-const reader = new FileReader();
-reader.onload = async (e) => {{
-const content = e.target.result;
-document.getElementById('acc-content').value = content;
-try {{
-const body = new URLSearchParams();
-body.append('content', content);
-const r = await fetch('/save_accounts', {{method:'POST', body: body.toString()}});
-if (r.ok) {{ const res = await r.text(); showToast('📤 Upload OK — ' + res); await loadAccountsList(); fileInput.value = ''; }}
-else {{ showToast('❌ Upload fail', '#ef4444'); }}
-}} catch(err) {{ showToast('❌ Error', '#ef4444'); }}
-}};
-reader.readAsText(file);
+  const fi = document.getElementById('acc-file');
+  if (!fi.files || !fi.files[0]) {{ showToast('❌ File select করুন', '#EF4444'); return; }}
+  const reader = new FileReader();
+  reader.onload = async (e) => {{
+    const content = e.target.result;
+    document.getElementById('acc-content').value = content;
+    try {{
+      const body = new URLSearchParams();
+      body.append('content', content);
+      const r = await fetch('/save_accounts', {{method:'POST', body: body.toString()}});
+      if (r.ok) {{
+        const res = await r.text();
+        showToast('📤 Uploaded — ' + res, '#EC4899');
+        await loadAccountsList();
+        fi.value = '';
+      }} else showToast('❌ Upload failed', '#EF4444');
+    }} catch(err) {{ showToast('❌ Error', '#EF4444'); }}
+  }};
+  reader.readAsText(fi.files[0]);
 }}
-
 async function fetchStats() {{
-try {{
-const r = await fetch('/api/stats'); if (!r.ok) return;
-const d = await r.json();
-document.getElementById('stat-online').innerText = d.online;
-document.getElementById('stat-total').innerText = d.total;
-document.getElementById('stat-threads').innerText = d.threads;
-document.getElementById('stat-version').innerText = d.version;
-const tb = document.getElementById('accounts-tbody');
-if (d.accounts && d.accounts.length) {{
-tb.innerHTML = d.accounts.map(a => `<tr>
-<td>${{a.bot_uid}}</td><td>${{a.uid}}</td>
-<td style="color:#38bdf8;font-weight:bold;">${{a.name}}</td>
-<td style="color:#f59e0b;font-weight:bold;">${{a.region}}</td>
-<td style="color:#facc15;font-weight:bold;">${{a.squad_id||'Pending...'}}</td>
-<td style="color:#a78bfa;font-weight:bold;">${{a.squad_members||'0/0'}}</td>
-<td>${{a.time}}</td>
-<td><span class="badge-online">● ONLINE</span></td></tr>`).join('');
-}} else tb.innerHTML = '<tr><td colspan="8">⚠️ No active bots.</td></tr>';
-}} catch(e) {{}}
+  try {{
+    const r = await fetch('/api/stats');
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('stat-online').innerText = d.online;
+    document.getElementById('stat-total').innerText = d.total;
+    document.getElementById('stat-threads').innerText = d.threads;
+    document.getElementById('stat-version').innerText = d.version;
+    const tb = document.getElementById('accounts-tbody');
+    if (d.accounts && d.accounts.length) {{
+      tb.innerHTML = d.accounts.map(a => `<tr>
+        <td style="font-family:'JetBrains Mono',monospace; color:var(--txt-2);">${{a.bot_uid}}</td>
+        <td style="font-family:'JetBrains Mono',monospace; color:var(--txt-2);">${{a.uid}}</td>
+        <td style="color:var(--cyan); font-weight:700;">${{a.name}}</td>
+        <td><span style="color:var(--amber); font-weight:700;">${{a.region}}</span></td>
+        <td style="color:#FACC15; font-family:'JetBrains Mono',monospace; font-weight:600;">${{a.squad_id||'Pending...'}}</td>
+        <td style="color:#C084FC; font-weight:700;">${{a.squad_members||'0/0'}}</td>
+        <td style="color:var(--txt-3); font-family:'JetBrains Mono',monospace;">${{a.time}}</td>
+        <td><span class="badge-live">ONLINE</span></td>
+      </tr>`).join('');
+    }} else {{
+      tb.innerHTML = '<tr class="empty-row"><td colspan="8">⚠️ No active bots</td></tr>';
+    }}
+  }} catch(e) {{}}
 }}
-
 async function fetchLogs() {{
-try {{
-const r = await fetch('/api/logs'); if (!r.ok) return;
-const d = await r.json();
-const el = document.getElementById('live-log');
-const logs = d.logs || [];
-if (!logs.length) {{ el.innerHTML = '📡 Waiting for logs...'; return; }}
-const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
-el.innerHTML = logs.map(l => `<div>${{l.replace(/&/g,'&amp;').replace(/</g,'&lt;')}}</div>`).join('');
-if (atBottom) el.scrollTop = el.scrollHeight;
-}} catch(e) {{}}
+  try {{
+    const r = await fetch('/api/logs');
+    if (!r.ok) return;
+    const d = await r.json();
+    const el = document.getElementById('live-log');
+    const logs = d.logs || [];
+    if (!logs.length) {{ el.innerHTML = '📡 Waiting for logs...'; return; }}
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
+    el.innerHTML = logs.map(l => `<div>${{l.replace(/&/g,'&amp;').replace(/</g,'&lt;')}}</div>`).join('');
+    if (atBottom) el.scrollTop = el.scrollHeight;
+  }} catch(e) {{}}
 }}
-function clearLogView() {{ document.getElementById('live-log').innerHTML = '📡 Cleared.'; }}
+function clearLogView() {{
+  document.getElementById('live-log').innerHTML = '📡 Cleared.';
+  showToast('🗑️ Log cleared', '#F59E0B');
+}}
 
-// Auto-sync
-loadAccountsList();
-setInterval(loadAccountsList, 15000);
-fetchStats(); setInterval(fetchStats, 2000);
-fetchLogs(); setInterval(fetchLogs, 2500);
-refreshStatus(); setInterval(refreshStatus, 3000);
+loadAccountsList(); setInterval(loadAccountsList, 15000);
+fetchStats();       setInterval(fetchStats, 2000);
+fetchLogs();        setInterval(fetchLogs, 2500);
+refreshStatus();    setInterval(refreshStatus, 3000);
 </script>
 </body>
 </html>"""
@@ -2517,8 +2582,7 @@ refreshStatus(); setInterval(refreshStatus, 3000);
             except: total = 0
             self._json_response({'online': oc, 'total': total, 'threads': len(accs),
                 'version': FREEFIRE_VERSION_NAME or "loading...",
-                'release': CURRENT_OB or "loading...",
-                'accounts': accs})
+                'release': CURRENT_OB or "loading...", 'accounts': accs})
             return
 
         if self.path == '/api/logs':
@@ -2528,18 +2592,14 @@ refreshStatus(); setInterval(refreshStatus, 3000);
         if self.path == '/api/accounts':
             try:
                 with open(ACCOUNTS_FILE, "r", encoding="utf-8") as f: content = f.read()
-            except Exception: content = ""
+            except: content = ""
             accs = load_accounts()
             self._json_response({'content': content, 'count': len(accs),
                 'accounts': [{'uid': u, 'password': p} for u, p in accs.items()]})
             return
 
         if self.path == '/api/status':
-            self._json_response({
-                'stopped': is_stopped(),
-                'online': online_count,
-                'total': total_accounts,
-            })
+            self._json_response({'stopped': is_stopped(), 'online': online_count, 'total': total_accounts})
             return
 
         self.send_response(404); self.end_headers()
@@ -2549,22 +2609,22 @@ refreshStatus(); setInterval(refreshStatus, 3000);
 
         if self.path == '/restart_accounts':
             trigger_restart_all()
-            console.print("[bold yellow]♻️ Account restart triggered[/bold yellow]")
+            console.print("[yellow]♻️ Account restart triggered[/yellow]")
             self._text_response('OK'); return
 
         if self.path == '/recreate_squads':
             trigger_recreate_all()
-            console.print("[bold yellow]🔄 Squad recreate triggered[/bold yellow]")
+            console.print("[yellow]🔄 Squad recreate triggered[/yellow]")
             self._text_response('OK'); return
 
         if self.path == '/stop_all_bots':
             set_stop_all(True)
-            console.print("[bold red]🛑 STOP ALL BOTS TRIGGERED FROM WEB[/bold red]")
+            console.print("[red]🛑 STOP ALL BOTS TRIGGERED[/red]")
             self._text_response('OK'); return
 
         if self.path == '/start_all_bots':
             set_stop_all(False)
-            console.print("[bold green]🚀 START ALL BOTS TRIGGERED FROM WEB[/bold green]")
+            console.print("[green]🚀 START ALL BOTS TRIGGERED[/green]")
             self._text_response('OK'); return
 
         if self.path == '/save_accounts':
@@ -2573,7 +2633,7 @@ refreshStatus(); setInterval(refreshStatus, 3000);
             try:
                 save_accounts_raw(new_content)
                 cnt = len(load_accounts())
-                console.print(f"[bold green]💾 Accounts saved ({cnt})[/bold green]")
+                console.print(f"[green]💾 Accounts saved ({cnt})[/green]")
                 self._text_response(f'OK:{cnt}')
             except Exception as e:
                 self._text_response(f'Error: {e}', 500)
@@ -2584,23 +2644,10 @@ refreshStatus(); setInterval(refreshStatus, 3000);
             uid = params.get('uid', [''])[0].strip()
             pwd = params.get('password', [''])[0].strip()
             if not uid.isdigit() or not pwd:
-                self._text_response('Invalid uid/password', 400); return
+                self._text_response('Invalid', 400); return
             try:
                 accs = load_accounts(); accs[uid] = pwd; save_accounts(accs)
-                console.print(f"[bold green]➕ Account added: {uid}[/bold green]")
-                self._text_response('OK')
-            except Exception as e:
-                self._text_response(f'Error: {e}', 500)
-            return
-
-        if self.path == '/delete_account':
-            params = parse_qs(raw)
-            uid = params.get('uid', [''])[0].strip()
-            try:
-                accs = load_accounts()
-                if uid in accs:
-                    del accs[uid]; save_accounts(accs)
-                    console.print(f"[bold red]🗑️ Account deleted: {uid}[/bold red]")
+                console.print(f"[green]➕ Account added: {uid}[/green]")
                 self._text_response('OK')
             except Exception as e:
                 self._text_response(f'Error: {e}', 500)
@@ -2611,34 +2658,34 @@ refreshStatus(); setInterval(refreshStatus, 3000);
             try:
                 size = int(params.get('squad_size', ['4'])[0])
                 if size not in (3, 4, 5): size = 4
-
                 rc = int(params.get('world_recruit_count', ['3'])[0])
                 if rc < 1 or rc > 10: rc = 3
-
                 wrt = params.get('world_recruit_type', ['1'])[0]
                 if wrt not in ('1', '2', 'half', 'random'): wrt = '1'
-
                 lt = int(params.get('squad_lifetime_sec', ['5'])[0])
                 if lt < 5 or lt > 3600: lt = 5
-
-                ar = params.get('auto_recreate', ['0'])[0] == '1'
+                ar  = params.get('auto_recreate', ['0'])[0] == '1'
                 ajo = params.get('auto_recruit_on_join', ['0'])[0] == '1'
                 alv = params.get('auto_recruit_on_leave', ['0'])[0] == '1'
                 abj = params.get('auto_bundle_on_join', ['0'])[0] == '1'
                 aej = params.get('auto_emote_on_join', ['0'])[0] == '1'
                 aan = params.get('auto_animation', ['0'])[0] == '1'
-
+                awj = params.get('auto_welcome_on_join', ['0'])[0] == '1'
+                ako = params.get('auto_kick_on_join', ['0'])[0] == '1'
                 bcj = int(params.get('bundle_count_on_join', ['2'])[0])
                 if bcj < 1 or bcj > 5: bcj = 2
-
                 ais = int(params.get('animation_interval_sec', ['10'])[0])
                 if ais < 5 or ais > 300: ais = 10
-
-                rds = float(params.get('recruit_delay_sec', ['1.5'])[0])
+                rds = float(params.get('recruit_delay_sec', ['1.5'])[0] or 1.5)
                 if rds < 0.5 or rds > 30: rds = 1.5
-
+                ejd = float(params.get('emote_join_delay_sec', ['0.5'])[0] or 0.5)
+                if ejd < 0.1 or ejd > 30: ejd = 0.5
+                wds = float(params.get('welcome_delay_sec', ['0.5'])[0] or 0.5)
+                if wds < 0.1 or wds > 30: wds = 0.5
+                kds = float(params.get('kick_delay_sec', ['1.0'])[0] or 1.0)
+                if kds < 0.1 or kds > 30: kds = 1.0
+                km = params.get('kick_msg', [''])[0] or "[B][C][FF0000]🚫 Auto-Kicked!"
                 wm = params.get('welcome_msg', [''])[0] or DEFAULT_WELCOME_MSG
-
                 with web_config_lock:
                     web_config['squad_size'] = size
                     web_config['world_recruit_count'] = rc
@@ -2654,19 +2701,63 @@ refreshStatus(); setInterval(refreshStatus, 3000);
                     web_config['bundle_count_on_join'] = bcj
                     web_config['recruit_delay_sec'] = rds
                     web_config['welcome_msg'] = wm
-
+                    web_config['auto_welcome_on_join'] = awj
+                    web_config['auto_kick_on_join'] = ako
+                    web_config['emote_join_delay_sec'] = ejd
+                    web_config['welcome_delay_sec'] = wds
+                    web_config['kick_delay_sec'] = kds
+                    web_config['kick_msg'] = km
                 save_web_config()
-                console.print(f"[bold green]⚙️ Config Updated (Recruit={wrt} | Anim={aan}@{ais}s)[/bold green]")
+                console.print(f"[green]⚙️ Config Updated[/green]")
                 self._text_response('OK')
             except Exception as e:
                 self._text_response(f"Error: {e}", 400)
+            return
+
+        if self.path == '/save_emote_pool':
+            params = parse_qs(raw)
+            try:
+                join_raw = params.get('join_emote_pool', [''])[0]
+                self_raw = params.get('bot_self_emote_pool', [''])[0]
+                bse = params.get('bot_self_emote_enabled', ['0'])[0] == '1'
+                bsi = float(params.get('bot_self_emote_interval', ['8.0'])[0] or 8.0)
+                if bsi < 1 or bsi > 300: bsi = 8.0
+
+                def parse_ids(text):
+                    ids = []
+                    for part in re.split(r'[,\s\n;|]+', text or ''):
+                        part = part.strip()
+                        if part.isdigit():
+                            v = int(part)
+                            if 100000000 <= v <= 999999999:
+                                ids.append(v)
+                    return ids
+
+                jids = parse_ids(join_raw)
+                sids = parse_ids(self_raw)
+                if not jids: jids = DEFAULT_JOIN_EMOTES[:]
+                if not sids: sids = DEFAULT_JOIN_EMOTES[:]
+
+                with web_config_lock:
+                    web_config['join_emote_pool'] = jids
+                    web_config['bot_self_emote_pool'] = sids
+                    web_config['bot_self_emote_enabled'] = bse
+                    web_config['bot_self_emote_interval'] = bsi
+
+                save_web_config()
+                console.print(f"[green]🎭 Emote Pool Updated (Join={len(jids)}, Self={len(sids)}, SelfOn={bse})[/green]")
+                self._text_response('OK')
+            except Exception as e:
+                self._text_response(f'Error: {e}', 400)
             return
 
         self.send_response(404); self.end_headers()
 
     def log_message(self, format, *args): pass
 
-
+# ================================================================
+#   MAIN
+# ================================================================
 def start_web_server():
     port = 8080
     try:
@@ -2676,7 +2767,6 @@ def start_web_server():
         server.serve_forever()
     except OSError:
         console.print(f"[bold red]❌ Port {port} in use.[/bold red]")
-
 
 async def main_async():
     print(render('MAHIR', colors=['white', 'red'], align='center'))
@@ -2689,26 +2779,24 @@ async def main_async():
         "[bold green]✅ Squad System Active[/bold green]\n"
         "[cyan]🌐 http://localhost:8080[/cyan]\n"
         f"[white]📦 {CURRENT_OB} | {FREEFIRE_VERSION_NAME}[/white]\n"
-        "[magenta]👥 Squad Create: OpEnSq + cHSq22[/magenta]\n"
-        "[yellow]📢 World Recruit: Type 1 / Type 2 / Half / Random[/yellow]\n"
+        "[magenta]👥 Squad: OpEnSq + cHSq22[/magenta]\n"
+        "[yellow]📢 Recruit: Type 1 / 2 / Half / Random[/yellow]\n"
         "[blue]💬 Team Chat: ENABLED ✅[/blue]\n"
-        "[bold magenta]👗 AUTO BUNDLE ON JOIN: ✅[/bold magenta]\n"
-        "[bold magenta]🎭 AUTO EMOTE ON JOIN: ✅ (0.5s)[/bold magenta]\n"
-        "[bold cyan]✨ AUTO ANIMATION LOOP: ✅[/bold cyan]\n"
-        "[bold green]🎭 AUTO EMOTE EQUIP ON LOGIN: ✅[/bold green]\n"
-        "[bold red]🛑 STOP ALL BOTS: ✅ (Web One-Click)[/bold red]\n"
-        "[bold yellow]⚠️  NO FALLBACK — Pure API data[/bold yellow]",
-        title="[bold red]🔥 MAHIR SQUAD BOT 🔥[/bold red]",
+        "[bold magenta]👗 Auto Bundle · 🎭 Join Emote · ✨ Animation[/bold magenta]\n"
+        "[bold green]🎭 Auto Emote Equip ON LOGIN ✅[/bold green]\n"
+        "[bold red]🛑 STOP ALL BOTS: Web One-Click ✅[/bold red]\n"
+        "[bold cyan]🎭 Web-Editable Join Emote Pool ✅[/bold cyan]\n"
+        "[bold violet]🤖 Bot Self-Emote Toggle ✅[/bold violet]\n"
+        "[bold yellow]⚠️ NO FALLBACK — Pure API Data[/bold yellow]",
+        title="[bold red]🔥 MAHIR SQUAD BOT — CYBERPUNK 🔥[/bold red]",
         border_style="bright_red", expand=False))
     while True: await asyncio.sleep(3600)
-
 
 def main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try: loop.run_until_complete(main_async())
     except KeyboardInterrupt: console.print("\n[bold red]Shutdown.[/bold red]")
-
 
 if __name__ == "__main__":
     main()
