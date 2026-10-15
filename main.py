@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # MAHIR SQUAD BOT — GROUP CREATE + WORLD RECRUIT + TEAM CHAT + AUTO BUNDLE
 # ✅ AUTO RECREATE EVERY 5 SECONDS (EXIT → CREATE → RECRUIT)
+# ✅ ALL ACCOUNTS LAUNCHED CONCURRENTLY (no blocking, auto-retry)
 
 import subprocess
 import sys
@@ -208,7 +209,6 @@ DEFAULT_COMMANDS = {
 # ================================================================
 #   WEB CONFIG
 # ================================================================
-# ✅ squad_lifetime_sec = 5 (৫ সেকেন্ড পরপর Auto Recreate)
 web_config = {
     "squad_size": 4,
     "world_recruit_count": 3,
@@ -263,7 +263,6 @@ def load_web_config():
             if isinstance(wrc, int) and 1 <= wrc <= 10:
                 web_config["world_recruit_count"] = wrc
             slt = saved.get("squad_lifetime_sec")
-            # ✅ এখন 5 সেকেন্ড থেকে অনুমোদিত
             if isinstance(slt, int) and 5 <= slt <= 3600:
                 web_config["squad_lifetime_sec"] = slt
             ar = saved.get("auto_recreate")
@@ -1033,55 +1032,155 @@ def create_auth_token_online(account_uid, token, kts, key, iv):
     except Exception as e:
         print(f"❌ ONLINE AUTH: {e}"); return None
 
+# ================================================================
+#   ✅ ACCOUNT LOADER (improved)
+# ================================================================
 def load_accounts(file_path="accs.json"):
+    """
+    ✅ accs.json পড়ে সব valid account return করে।
+    ✅ file না থাকলে auto create করে।
+    ✅ invalid/ভাঙা JSON হলে crash করে না।
+    """
     try:
         if not os.path.exists(file_path):
-            with open(file_path, "w", encoding="utf-8") as f: f.write("{}")
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write("{}")
+            console.print(f"[bold yellow]📁 {file_path} তৈরি করা হয়েছে (খালি)[/bold yellow]")
             return {}
+
         with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            if isinstance(data, dict):
-                return {str(k): str(v) for k, v in data.items() if str(k).isdigit()}
+            content = f.read().strip()
+
+        if not content:
             return {}
+
+        data = json.loads(content)
+
+        if not isinstance(data, dict):
+            console.print("[bold red]⚠️ accs.json এর ফরম্যাট ভুল (dict হতে হবে)[/bold red]")
+            return {}
+
+        valid = {}
+        for k, v in data.items():
+            ks, vs = str(k).strip(), str(v).strip()
+            if ks.isdigit() and vs:
+                valid[ks] = vs
+        return valid
+
+    except json.JSONDecodeError as e:
+        console.print(f"[bold red]❌ accs.json JSON ভাঙা: {e}[/bold red]")
+        return {}
     except Exception as e:
         console.print(f"[bold red]Acc Load Error: {e}[/bold red]")
         return {}
 
-async def process_single_bot(uid, pwd, index):
-    for attempt in range(1, 3):
-        bot = SquadBot(uid=uid, password=pwd, server='bd', index=index)
-        bot_task = asyncio.create_task(bot.keep_online_forever())
-        wait_time = 0
-        while wait_time < 20:
-            await asyncio.sleep(0.5); wait_time += 0.5
-            if bot.is_online: return True
-        bot.is_running = False; bot_task.cancel()
-        await asyncio.sleep(0.2)
-    console.print(f"[bold red]🚫 Skipping UID {uid}.[/bold red]")
-    return False
 
+# ================================================================
+#   ✅ BATCH ACCOUNT LOADER — সব account একসাথে চালু (concurrent + auto retry)
+# ================================================================
 async def batch_account_loader():
+    """
+    ✅ সব account একসাথে চালু করে (কোনো sequential wait নেই)।
+    ✅ কোনো account fail করলে ২ সেকেন্ডের মধ্যে auto retry।
+    ✅ request/recruit/bundle চলার সময়ও বাকি account launch হয়।
+    ✅ accs.json এ নতুন UID add করলে সাথে সাথে pick up হয় (restart ছাড়াই)।
+    ✅ accs.json থেকে UID মুছলে সেই bot বন্ধ হয়।
+    """
     global total_accounts
-    launched_accounts = set()
-    active_tasks = {}
+    active_bots = {}      # uid -> SquadBot instance
+    bot_tasks   = {}      # uid -> asyncio.Task
+
+    console.print("[bold cyan]🚀 Batch Account Loader চালু হয়েছে...[/bold cyan]")
+
     while True:
         try:
             accounts = load_accounts()
             total_accounts = len(accounts)
-            new_accounts = [(uid, pwd) for uid, pwd in accounts.items() if uid not in launched_accounts]
-            for uid, pwd in new_accounts:
-                if uid in launched_accounts: continue
-                launched_accounts.add(uid)
-                with running_bots_lock: running_bots.add(uid)
-                console.print(f"[bold green]✨ New Account → UID {uid} → Launching...[/bold green]")
-                task = asyncio.create_task(process_single_bot(uid, pwd, len(launched_accounts)))
-                active_tasks[uid] = task
-                await asyncio.sleep(0.15)
-            for uid in list(active_tasks.keys()):
-                if active_tasks[uid].done(): del active_tasks[uid]
+
+            # ── ১. নতুন account গুলো launch করা ──
+            for uid, pwd in accounts.items():
+                with running_bots_lock:
+                    running_bots.add(uid)
+
+                # আগের task চলমান থাকলে skip
+                if uid in bot_tasks and not bot_tasks[uid].done():
+                    continue
+
+                # পুরনো মৃত task/instance clean up
+                if uid in bot_tasks:
+                    del bot_tasks[uid]
+                if uid in active_bots:
+                    try:
+                        active_bots[uid].is_running = False
+                    except Exception:
+                        pass
+                    del active_bots[uid]
+
+                bot = SquadBot(uid=uid, password=pwd, server='bd',
+                               index=len(bot_tasks) + 1)
+                active_bots[uid] = bot
+
+                # ✅ সরাসরি keep_online_forever — কোনো 20s wait নেই, কোনো cancel নেই
+                task = asyncio.create_task(bot.keep_online_forever())
+                bot_tasks[uid] = task
+
+                console.print(f"[bold green]✨ UID {uid} → Launched[/bold green]")
+                await asyncio.sleep(0.05)
+
+            # ── ২. মৃত / crash হওয়া task detect করা ──
+            for uid in list(bot_tasks.keys()):
+                if bot_tasks[uid].done():
+                    try:
+                        exc = bot_tasks[uid].exception()
+                    except Exception:
+                        exc = None
+                    if exc:
+                        console.print(
+                            f"[bold red]⚠️ UID {uid} crashed: {exc} → "
+                            f"পরের cycle এ আবার চালু হবে[/bold red]"
+                        )
+                    else:
+                        console.print(
+                            f"[bold yellow]⚠️ UID {uid} task শেষ → আবার চালু হবে[/bold yellow]"
+                        )
+                    if uid in active_bots:
+                        try:
+                            active_bots[uid].is_running = False
+                        except Exception:
+                            pass
+                        del active_bots[uid]
+                    del bot_tasks[uid]
+
+            # ── ৩. accs.json থেকে UID মুছে গেলে bot বন্ধ করা ──
+            for uid in list(bot_tasks.keys()):
+                if uid not in accounts:
+                    console.print(
+                        f"[bold red]🗑️ UID {uid} accs.json থেকে মুছে গেছে → বন্ধ করা হচ্ছে[/bold red]"
+                    )
+                    if uid in active_bots:
+                        try:
+                            active_bots[uid].is_running = False
+                        except Exception:
+                            pass
+                        del active_bots[uid]
+                    if not bot_tasks[uid].done():
+                        bot_tasks[uid].cancel()
+                    del bot_tasks[uid]
+                    with running_bots_lock:
+                        running_bots.discard(uid)
+
+            # ── ৪. status log ──
+            if accounts:
+                console.print(
+                    f"[dim]📊 Active: {len(bot_tasks)}/{len(accounts)} accounts running[/dim]",
+                    end="\r"
+                )
+
         except Exception as e:
             console.print(f"[bold red]Loader Err: {e}[/bold red]")
-        await asyncio.sleep(1)
+
+        await asyncio.sleep(2)
+
 
 def ResTarTinG():
     console.print("[bold yellow]♻️ Restarting...[/bold yellow]")
@@ -1117,7 +1216,6 @@ class SquadBot:
         self.last_bundle_at = 0
         self._recruit_lock = asyncio.Lock()
         self._bundle_lock = asyncio.Lock()
-        # ✅ নতুন lock — একই সাথে দুইবার recreate আটকাতে
         self._recreate_lock = asyncio.Lock()
         update_bot_info(self.uid, status="🔄 Initializing...", squad_active=False)
 
@@ -1234,7 +1332,6 @@ class SquadBot:
             except Exception as e:
                 console.print(f"[bold yellow]⚠ Squad size error: {e}[/bold yellow]")
 
-            # ✅ Only World Recruit — no WRR
             await self._send_world_recruit(reason="initial", count=recruit_count)
 
             self.squad_created = True
@@ -1247,16 +1344,13 @@ class SquadBot:
             console.print(f"[bold red]Squad create err [{self.uid}]: {e}[/bold red]")
             return False
 
-    # ✅ NEW: Lock-protected recreate — ৫ সেকেন্ড পরপর exit → create → recruit
     async def _do_recreate(self):
-        # একই সাথে দুইবার recreate আটকাতে
         if self._recreate_lock.locked():
             return False
         async with self._recreate_lock:
             try:
                 console.print(f"[bold yellow]🔄 [{self.uid}] Recreating squad (5s cycle)...[/bold yellow]")
 
-                # 1️⃣ Group Exit
                 if self.online_writer and self.bot_uid:
                     try:
                         exit_pkt = await MAHIR_LeaveSquad(
@@ -1278,7 +1372,6 @@ class SquadBot:
 
                 await asyncio.sleep(0.5)
 
-                # 2️⃣ Group Create + World Recruit Requests
                 return await self._build_and_send_squad()
 
             except Exception as e:
@@ -1513,14 +1606,12 @@ class SquadBot:
                     with web_config_lock:
                         auto_recreate = web_config.get("auto_recreate", True)
                         lifetime = web_config.get("squad_lifetime_sec", 10)
-                    # ✅ ৫ সেকেন্ড পরপর Auto Recreate
                     if auto_recreate and self.squad_created and (time.time() - self.squad_created_at > lifetime):
                         console.print(f"[bold yellow]⏰ [{self.uid}] Squad lifetime ({lifetime}s) ended → recreate[/bold yellow]")
                         await self._do_recreate()
                         continue
 
                     try:
-                        # ✅ timeout 5.0 → 1.0 (lifetime check আরও responsive)
                         data = await asyncio.wait_for(self.reader.read(65536), timeout=1.0)
                         if not data: break
                         data_hex = data.hex()
@@ -2135,7 +2226,6 @@ fetchLogs(); setInterval(fetchLogs, 2500);
                 if size not in (3, 4, 5): size = 4
                 rc = int(params.get('world_recruit_count', ['3'])[0])
                 if rc < 1 or rc > 10: rc = 3
-                # ✅ ৫ সেকেন্ড minimum
                 lt = int(params.get('squad_lifetime_sec', ['5'])[0])
                 if lt < 5 or lt > 3600: lt = 5
                 ar = params.get('auto_recreate', ['0'])[0] == '1'
@@ -2195,7 +2285,8 @@ async def main_async():
         "[bold red]🚫 WRR Packet: REMOVED[/bold red]\n"
         "[bold magenta]👗 AUTO BUNDLE ON JOIN: ENABLED ✅[/bold magenta]\n"
         "[bold yellow]⏰ AUTO RECREATE CYCLE: 5 SECONDS (EXIT → CREATE → RECRUIT)[/bold yellow]\n"
-        "[bold cyan]📢 TEAM CHAT CMDS: /help /app /store HI .time MAHIR my id[/bold cyan]",
+        "[bold cyan]📢 TEAM CHAT CMDS: /help /app /store HI .time MAHIR my id[/bold cyan]\n"
+        "[bold green]🚀 ALL ACCOUNTS RUN CONCURRENTLY (auto-retry on fail)[/bold green]",
         title="[bold red]🔥 MAHIR SQUAD BOT 🔥[/bold red]",
         border_style="bright_red", expand=False))
     while True: await asyncio.sleep(3600)
