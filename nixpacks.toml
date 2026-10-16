@@ -1,0 +1,20 @@
+# MAHIR SQUAD BOT — Nixpacks Build Configuration
+providers = ["python"]
+
+[variables]
+PYTHON_VERSION = "3.11.9"
+PYTHONUNBUFFERED = "1"
+PYTHONDONTWRITEBYTECODE = "1"
+NIXPACKS_PYTHON_VERSION = "3.11.9"
+
+[phases.setup]
+nixPkgs = ["python311", "gcc", "libffi", "openssl", "git"]
+
+[phases.install]
+cmds = [
+  "python -m pip install --upgrade pip setuptools wheel",
+  "pip install -r requirements.txt"
+]
+
+[start]
+cmd = "python3 mahir.py"

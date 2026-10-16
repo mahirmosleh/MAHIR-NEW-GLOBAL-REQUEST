@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# MAHIR SQUAD BOT — PREMIUM CYBERPUNK EDITION (FIXED)
+# MAHIR SQUAD BOT — PREMIUM CYBERPUNK EDITION (v2.0 UPDATED)
+# ✅ Multi cHSq Support (1-7 Players) · Multi Recruit Type
 # ✅ Auto Update · Auto Emote · Auto Animation · Dual Recruit
 # ✅ Web Account Manager · Stop All · Auto Kick
 # ✅ Web-Editable Join Emotes · Bot Self-Emote Toggle
@@ -314,7 +315,7 @@ def load_web_config():
             with open(WEB_CONFIG_FILE, "r", encoding="utf-8") as f: saved = json.load(f)
         with web_config_lock:
             int_fields = {
-                "squad_size": (3, 5), "world_recruit_count": (1, 10),
+                "squad_size": (1, 7), "world_recruit_count": (1, 10),
                 "squad_lifetime_sec": (5, 3600), "bundle_count_on_join": (1, 5),
                 "animation_interval_sec": (5, 300),
             }
@@ -332,7 +333,7 @@ def load_web_config():
                 if isinstance(v, (int, float)) and lo <= float(v) <= hi: web_config[k] = float(v)
 
             wrt = saved.get("world_recruit_type")
-            if wrt in ("1", "2", "half", "random"): web_config["world_recruit_type"] = wrt
+            if wrt in ("1", "2", "3", "half", "random"): web_config["world_recruit_type"] = wrt
 
             bool_fields = [
                 "auto_recreate", "auto_recruit_on_join", "auto_recruit_on_leave",
@@ -637,7 +638,7 @@ async def Mahir_bundle_packet_2(bundle_id, key, iv, region="bd"):
         console.print(f"[red]bundle2 err: {e}[/red]"); return None
 
 # ================================================================
-#   SQUAD PACKETS (UPDATED WITH NEW PACKETS FROM IMAGE)
+#   SQUAD PACKETS
 # ================================================================
 async def MAHIR_OPenSq(key, iv, region, version_):
     fields = {
@@ -659,66 +660,125 @@ async def MAHIR_OPenSq(key, iv, region, version_):
     }
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
 
-# ================================================================
-#   UPDATED cHSq FUNCTIONS (FROM IMAGE)
-# ================================================================
+# ═══════════════════════════════════════════════════════════════
+# ⭐ UPDATED cHSq FUNCTIONS (1-7 Players Support)
+# ═══════════════════════════════════════════════════════════════
 async def MAHIR_cHSq11(Nu, bot_uid, key, iv, region):
+    """1 Player / Solo Mode"""
     fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 1, 4: 1, 5: "\x01", 8: 2}}
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
 async def MAHIR_cHSq22(Nu, bot_uid, key, iv, region):
+    """2 Players / Duo Mode"""
     fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 1, 4: 1, 5: "\x01", 8: 2}}
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
 async def MAHIR_cHSq33(Nu, bot_uid, key, iv, region):
+    """3 Players"""
     fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 1, 5: "\x01", 8: 2}}
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
 async def MAHIR_cHSq44(Nu, bot_uid, key, iv, region):
+    """4 Players / Squad Mode"""
     fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 15, 5: "\x01", 8: 6, 18: 42}}
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
 async def MAHIR_cHSq55(Nu, bot_uid, key, iv, region):
+    """5 Players"""
     fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 15, 5: "\x01", 8: 1}}
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
 async def MAHIR_cHSq66(Nu, bot_uid, key, iv, region):
+    """6 Players"""
     fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 1, 4: 43, 5: "\x0b", 8: 1}}
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
 async def MAHIR_cHSq77(Nu, bot_uid, key, iv, region):
+    """7 Players / Custom Room"""
     fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 46, 5: "\x0a", 7: 6, 8: 12, 16: 1}}
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
+# ⭐ SMART DISPATCHER: Squad Size অনুযায়ী সঠিক cHSq কল করবে
+async def MAHIR_cHSqSmart(squad_size, bot_uid, key, iv, region):
+    """
+    Squad size (1-7) অনুযায়ী সঠিক cHSq ফাংশন কল করবে।
+    squad_size 4 = 4 players squad
+    """
+    try:
+        s = int(squad_size)
+    except:
+        s = 4
+    
+    dispatcher = {
+        1: MAHIR_cHSq11,
+        2: MAHIR_cHSq22,
+        3: MAHIR_cHSq33,
+        4: MAHIR_cHSq44,
+        5: MAHIR_cHSq55,
+        6: MAHIR_cHSq66,
+        7: MAHIR_cHSq77,
+    }
+    
+    fn = dispatcher.get(s, MAHIR_cHSq44)
+    console.print(f"[cyan]🎯 cHSq dispatcher → size={s} using {fn.__name__}[/cyan]")
+    return await fn(s, bot_uid, key, iv, region)
+
 # ================================================================
-#   UPDATED WORLD RECRUIT FUNCTIONS (FROM IMAGE)
+#   ⭐ UPDATED WORLD RECRUIT FUNCTIONS (3 Types)
 # ================================================================
 async def MAHIR_World_Recruit(tid, key, iv):
+    """Type 1: Standard recruit with empty fields"""
     try:
         fields = {1: 66, 2: {1: int(tid), 5: {}, 9: "", 10: 1}}
         return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
     except: return None
 
 async def MAHIR_World_Recruit2(tid, key, iv):
+    """Type 2: Recruit with \u0007 flag"""
     try:
         fields = {1: 66, 2: {1: int(tid), 5: "\u0007", 9: {}, 10: 1}}
         return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
     except: return None
 
 async def MAHIR_World_Recruit3(tid, key, iv):
+    """Type 3: Advanced recruit with type codes"""
     try:
         fields = {1: 66, 2: {1: int(tid), 2: 301, 3: 303, 5: "\x07", 9: "", 10: 1}}
         return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
     except: return None
 
+# ⭐ SMART RECRUIT DISPATCHER
+async def MAHIR_World_RecruitSmart(recruit_type, tid, key, iv):
+    """recruit_type: '1', '2', '3' অথবা 'half', 'random'"""
+    rt = str(recruit_type).lower()
+    
+    if rt == "1":
+        return await MAHIR_World_Recruit(tid, key, iv)
+    elif rt == "2":
+        return await MAHIR_World_Recruit2(tid, key, iv)
+    elif rt == "3":
+        return await MAHIR_World_Recruit3(tid, key, iv)
+    elif rt == "half":
+        # অর্ধেকের জন্য alternate — এখানে external logic প্রয়োগ হবে
+        return await MAHIR_World_Recruit(tid, key, iv)
+    elif rt == "random":
+        fn = random.choice([MAHIR_World_Recruit, MAHIR_World_Recruit2, MAHIR_World_Recruit3])
+        return await fn(tid, key, iv)
+    else:
+        return await MAHIR_World_Recruit(tid, key, iv)
+
+# ================================================================
+#   STOP REQUEST + LEAVE SQUAD
+# ================================================================
 async def MAHIR_StopRequest(key, iv, region, bot_own_id):
+    """Stop/Cancel squad recruitment"""
     try:
         fields = {1: 70, 2: {1: int(bot_own_id)}}
         pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
@@ -731,27 +791,21 @@ async def MAHIR_LeaveSquad(key, iv, region, bot_own_id):
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
 # ================================================================
-# ⭐ FIXED: MAHIR_SendSquadMsg (using mahir.py reference)
+# ⭐ MAHIR_SendSquadMsg — CORRECT packet structure for squad chat
 # ================================================================
 async def MAHIR_SendSquadMsg(squad_owner, message, bot_uid, key, iv):
-    """
-    Send message in squad chat using correct packet structure.
-    Reference: mahir.py (working version)
-    """
     try:
         if not squad_owner or not bot_uid:
             return None
-        
-        # Ensure they are int
         squad_owner = int(squad_owner)
         bot_uid = int(bot_uid)
-        avatar_id = xBunnEr()  # sync function
+        avatar_id = xBunnEr()
         if not isinstance(avatar_id, int):
             avatar_id = 902000011
-        
+
         msg_str = str(message)
         preview = msg_str[:15] if len(msg_str) > 15 else msg_str
-        
+
         fields = {
             1: 1,
             2: {
@@ -793,7 +847,6 @@ async def MAHIR_SendSquadMsg(squad_owner, message, bot_uid, key, iv):
         return None
 
 async def MAHIR_OpenSquadChat(squad_id, chat_code, key, iv):
-    """Open squad chat using chat_code"""
     try:
         squad_id = int(squad_id)
         fields = {1: 3, 2: {1: squad_id, 2: 3, 3: "en", 4: str(chat_code)}}
@@ -1122,7 +1175,7 @@ def AuTo_ResTartinG():
         ResTarTinG()
 
 # ================================================================
-#   SQUAD BOT CLIENT (FIXED)
+#   SQUAD BOT CLIENT (UPDATED with smart dispatchers)
 # ================================================================
 class SquadBot:
     def __init__(self, uid, password, server='bd', index=0):
@@ -1197,7 +1250,6 @@ class SquadBot:
             if sent: console.print(f"[bold magenta]👗 [{self.uid}] Bundle × {sent}[/bold magenta]")
             return sent > 0
 
-    # ⭐ FIXED: _auto_kick_member
     async def _auto_kick_member(self, target_uid, target_name="Player"):
         try:
             with web_config_lock:
@@ -1209,8 +1261,7 @@ class SquadBot:
             if not self.online_writer:
                 return False
             await asyncio.sleep(max(0.05, delay))
-            
-            # Step 1: Send Kick packet
+
             try:
                 kick_pkt = await KickTarget(int(target_uid), self.key, self.iv)
                 if kick_pkt and self.online_writer and not self.online_writer.is_closing():
@@ -1219,15 +1270,12 @@ class SquadBot:
                     console.print(f"[bold red]🚫 [{self.uid}] Auto-kicked → {target_name} ({target_uid})[/bold red]")
             except Exception as e:
                 console.print(f"[yellow]⚠ Kick pkt err: {e}[/yellow]")
-            
-            # Step 2: Send kick message in squad chat
+
             try:
                 km2 = str(km).replace("{user_name}", str(target_name)).replace("{user_id}", str(target_uid))
                 sq_id = self.current_squad_id
                 if sq_id and self.chat_writer and self.bot_uid:
-                    msg_pkt = await MAHIR_SendSquadMsg(
-                        int(sq_id), km2, int(self.bot_uid), self.key, self.iv
-                    )
+                    msg_pkt = await MAHIR_SendSquadMsg(int(sq_id), km2, int(self.bot_uid), self.key, self.iv)
                     if msg_pkt:
                         self.chat_writer.write(msg_pkt)
                         await self.chat_writer.drain()
@@ -1238,22 +1286,17 @@ class SquadBot:
             console.print(f"[red]❌ Auto-kick err: {e}[/red]")
             return False
 
-    # ⭐ FIXED: _auto_welcome_member
     async def _auto_welcome_member(self, squad_id, chat_code, target_uid, target_name="Player"):
         try:
             with web_config_lock:
                 enabled = web_config.get("auto_welcome_on_join", True)
                 delay = float(web_config.get("welcome_delay_sec", 0.5))
-            if not enabled:
-                return False
-            if not self.chat_writer:
-                return False
-            if not self.bot_uid:
-                return False
-            
+            if not enabled: return False
+            if not self.chat_writer: return False
+            if not self.bot_uid: return False
+
             await asyncio.sleep(max(0.05, delay))
-            
-            # Step 1: Open squad chat using chat_code
+
             try:
                 if chat_code:
                     op = await MAHIR_OpenSquadChat(int(squad_id), chat_code, self.key, self.iv)
@@ -1263,15 +1306,12 @@ class SquadBot:
                         await asyncio.sleep(0.2)
             except Exception as e:
                 console.print(f"[yellow]⚠ Chat open err: {e}[/yellow]")
-            
-            # Step 2: Send welcome message
+
             with web_config_lock:
                 wt = web_config.get("welcome_msg", DEFAULT_WELCOME_MSG)
             wm = wt.replace("{user_name}", str(target_name))
-            
-            mp = await MAHIR_SendSquadMsg(
-                int(squad_id), wm, int(self.bot_uid), self.key, self.iv
-            )
+
+            mp = await MAHIR_SendSquadMsg(int(squad_id), wm, int(self.bot_uid), self.key, self.iv)
             if mp:
                 self.chat_writer.write(mp)
                 await self.chat_writer.drain()
@@ -1283,7 +1323,6 @@ class SquadBot:
             return False
 
     async def _bot_self_emote_loop(self):
-        """Bot Self Emote loop"""
         while self.is_running and self.is_online:
             try:
                 with web_config_lock:
@@ -1303,6 +1342,7 @@ class SquadBot:
             except asyncio.CancelledError: break
             except: await asyncio.sleep(5)
 
+    # ⭐ UPDATED: Uses MAHIR_World_RecruitSmart
     async def _send_world_recruit(self, reason="manual", count=None):
         if not self.online_writer or not self.bot_uid: return False
         async with self._recruit_lock:
@@ -1313,29 +1353,30 @@ class SquadBot:
             n = max(1, min(10, int(n)))
             now = time.time()
             if now - self.last_recruit_at < 2.0 and reason != "initial": return False
-            s1, s2 = 0, 0
+            s1, s2, s3 = 0, 0, 0
             for i in range(n):
                 try:
-                    ut = rt if rt in ("1", "2") else ("1" if rt == "half" and i % 2 == 0 else "2" if rt == "half" else random.choice(["1","2"]))
-                    if ut == "1":
-                        pkt = await MAHIR_World_Recruit(self.bot_uid, self.key, self.iv)
-                    elif ut == "2":
-                        pkt = await MAHIR_World_Recruit2(self.bot_uid, self.key, self.iv)
-                    else:
-                        pkt = await MAHIR_World_Recruit3(self.bot_uid, self.key, self.iv)
+                    ut = rt if rt in ("1", "2", "3") else (
+                        "1" if rt == "half" and i % 2 == 0 else
+                        "2" if rt == "half" else
+                        random.choice(["1", "2", "3"])
+                    )
+                    pkt = await MAHIR_World_RecruitSmart(ut, self.bot_uid, self.key, self.iv)
                     if pkt:
                         self.online_writer.write(pkt); await self.online_writer.drain()
                         if ut == "1": s1 += 1
-                        else: s2 += 1
+                        elif ut == "2": s2 += 1
+                        else: s3 += 1
                         await asyncio.sleep(0.35)
                 except: break
             self.last_recruit_at = time.time()
-            total = s1 + s2
+            total = s1 + s2 + s3
             if total:
                 icon = {"join":"🟢","leave":"🔴","initial":"🚀","manual":"📢"}.get(reason, "📢")
-                console.print(f"[cyan]{icon} [{self.uid}] Recruit × {total} (T1={s1} T2={s2} | {reason})[/cyan]")
+                console.print(f"[cyan]{icon} [{self.uid}] Recruit × {total} (T1={s1} T2={s2} T3={s3} | {reason})[/cyan]")
             return total > 0
 
+    # ⭐ UPDATED: Uses MAHIR_cHSqSmart
     async def _build_and_send_squad(self):
         try:
             with web_config_lock:
@@ -1345,20 +1386,21 @@ class SquadBot:
             if not op or not self.online_writer: return False
             self.online_writer.write(op); await self.online_writer.drain()
             await asyncio.sleep(0.4)
-            console.print(f"[cyan]ℹ [{self.uid}] Squad Created ✅[/cyan]")
+            console.print(f"[cyan]ℹ [{self.uid}] Squad Created ✅ (size={sc})[/cyan]")
             try:
                 op2 = await MAHIR_OPenSq(self.key, self.iv, self.region, FREEFIRE_VERSION_NAME)
                 self.online_writer.write(op2); await self.online_writer.drain()
                 await asyncio.sleep(0.3)
             except: pass
+            # ⭐ Smart cHSq dispatcher — squad_size based
             try:
-                # Randomly select a cHSq function from the new pool
-                sq_funcs = [MAHIR_cHSq11, MAHIR_cHSq22, MAHIR_cHSq33, MAHIR_cHSq44, MAHIR_cHSq55, MAHIR_cHSq66, MAHIR_cHSq77]
-                sq_func = random.choice(sq_funcs)
-                sp = await sq_func(sc, self.bot_uid, self.key, self.iv, self.region)
-                self.online_writer.write(sp); await self.online_writer.drain()
-                await asyncio.sleep(0.3)
-            except: pass
+                sp = await MAHIR_cHSqSmart(sc, self.bot_uid, self.key, self.iv, self.region)
+                if sp:
+                    self.online_writer.write(sp); await self.online_writer.drain()
+                    console.print(f"[bold cyan]🎯 [{self.uid}] cHSq applied → {sc} players[/bold cyan]")
+                    await asyncio.sleep(0.3)
+            except Exception as e:
+                console.print(f"[yellow]⚠ [{self.uid}] cHSq err: {e}[/yellow]")
             await self._send_world_recruit(reason="initial", count=rcc)
             self.squad_created = True
             self.squad_created_at = time.time()
@@ -1376,6 +1418,13 @@ class SquadBot:
                 console.print(f"[yellow]🔄 [{self.uid}] Recreating squad...[/yellow]")
                 if self.online_writer and self.bot_uid:
                     try:
+                        # Stop recruit first
+                        try:
+                            stop_pkt = await MAHIR_StopRequest(self.key, self.iv, self.region, self.bot_uid)
+                            if stop_pkt:
+                                self.online_writer.write(stop_pkt); await self.online_writer.drain()
+                                await asyncio.sleep(0.2)
+                        except: pass
                         ep = await MAHIR_LeaveSquad(self.key, self.iv, self.region, self.bot_uid)
                         if ep:
                             self.online_writer.write(ep); await self.online_writer.drain()
@@ -1391,21 +1440,13 @@ class SquadBot:
                 console.print(f"[red]Recreate err [{self.uid}]: {e}[/red]")
             return False
 
-    # ⭐ FIXED: send_team_msg
     async def send_team_msg(self, message: str, squad_id=None):
-        """Send a message to squad chat with proper error handling"""
         try:
-            if not self.chat_writer:
-                return False
-            if not self.bot_uid:
-                return False
+            if not self.chat_writer: return False
+            if not self.bot_uid: return False
             sq_id = squad_id or self.current_squad_id
-            if not sq_id:
-                return False
-            
-            pkt = await MAHIR_SendSquadMsg(
-                int(sq_id), message, int(self.bot_uid), self.key, self.iv
-            )
+            if not sq_id: return False
+            pkt = await MAHIR_SendSquadMsg(int(sq_id), message, int(self.bot_uid), self.key, self.iv)
             if pkt:
                 self.chat_writer.write(pkt)
                 await self.chat_writer.drain()
@@ -1704,7 +1745,7 @@ class SquadBot:
                 return
 
 # ================================================================
-#   WEB SERVER — PREMIUM CYBERPUNK DASHBOARD (REDESIGNED)
+#   WEB SERVER — PREMIUM CYBERPUNK DASHBOARD
 # ================================================================
 class BotHandler(BaseHTTPRequestHandler):
     def _json_response(self, data, status=200):
@@ -1806,8 +1847,6 @@ body::after{{
   mask-image:radial-gradient(ellipse at center, black 30%, transparent 92%);
   -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 92%);
 }}
-
-/* ═══ SIDEBAR ═══ */
 .layout{{display:flex; min-height:100vh; position:relative; z-index:1}}
 .sidebar{{
   width:250px; flex-shrink:0;
@@ -1847,11 +1886,7 @@ body::after{{
   box-shadow:inset 3px 0 0 var(--cyan),0 0 22px rgba(34,211,238,0.15);
 }}
 .sb-link .ico{{font-size:1.15em;width:22px;text-align:center}}
-
-/* ═══ MAIN ═══ */
 .main{{flex:1;padding:22px 26px 44px;min-width:0}}
-
-/* ═══ TOPBAR ═══ */
 .topbar{{
   position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;
   padding:20px 26px;background:linear-gradient(135deg,rgba(15,22,40,0.92),rgba(19,27,51,0.75));
@@ -1869,7 +1904,6 @@ body::after{{
 .tb-menu{{display:none;width:38px;height:38px;border-radius:10px;background:rgba(34,211,238,0.08);border:1px solid var(--line-hi);color:var(--cyan);cursor:pointer;font-size:1.15em}}
 .tb-title{{font-family:'Orbitron',sans-serif;font-size:1.1em;font-weight:900;letter-spacing:2px}}
 .tb-title span{{background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
-
 .pill{{
   display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;
   font-size:0.7em;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
@@ -1881,8 +1915,6 @@ body::after{{
 .pill.amber{{background:rgba(245,158,11,0.08);color:var(--amber);border-color:rgba(245,158,11,0.35)}}
 .dot{{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor;animation:blink 1.4s infinite}}
 @keyframes blink{{50%{{opacity:0.4;transform:scale(0.85)}}}}
-
-/* ═══ BANNER ═══ */
 .status-banner{{
   position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:14px;
   padding:18px 24px;border-radius:var(--r);margin-bottom:22px;
@@ -1896,8 +1928,6 @@ body::after{{
   animation:swipe 3.5s linear infinite;pointer-events:none;
 }}
 @keyframes swipe{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}
-
-/* ═══ STATS ═══ */
 .stats-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:22px}}
 .stat-card{{
   position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);
@@ -1918,8 +1948,6 @@ body::after{{
 .stat-card.s-blue{{--tint:rgba(59,130,246,0.35);--glow:rgba(59,130,246,0.22);--vc:#60A5FA}}
 .stat-card.s-violet{{--tint:rgba(168,85,247,0.35);--glow:rgba(168,85,247,0.22);--vc:#C084FC}}
 .stat-card.s-cyan{{--tint:rgba(34,211,238,0.35);--glow:rgba(34,211,238,0.22);--vc:#22D3EE}}
-
-/* ═══ PANELS ═══ */
 .panel{{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:24px;margin-bottom:20px;transition:border-color 0.3s}}
 .panel:hover{{border-color:var(--line-hi)}}
 .panel-head{{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-bottom:16px;margin-bottom:20px;border-bottom:1px solid var(--line)}}
@@ -1929,8 +1957,6 @@ body::after{{
 .panel-ico.pink{{background:linear-gradient(135deg,rgba(236,72,153,0.18),rgba(168,85,247,0.14))}}
 .panel-ico.green{{background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.14))}}
 .panel-ico.red{{background:linear-gradient(135deg,rgba(239,68,68,0.18),rgba(220,38,38,0.14))}}
-
-/* ═══ BUTTONS ═══ */
 .btn{{
   position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:10px;
   padding:13px 24px;border:1px solid rgba(255,255,255,0.12);border-radius:12px;
@@ -1948,7 +1974,6 @@ body::after{{
 .btn.violet{{background:linear-gradient(135deg,var(--violet),#7E22CE)}}
 .btn.ghost{{background:rgba(255,255,255,0.04);border:1px solid var(--line-hi);color:var(--txt)}}
 .btn.ghost:hover:not(:disabled){{background:rgba(34,211,238,0.08);border-color:var(--cyan)}}
-
 .action-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}}
 .action-tile{{display:flex!important;align-items:center;justify-content:flex-start!important;gap:16px;padding:18px 22px!important;text-transform:none!important;letter-spacing:0!important;min-height:80px;border-radius:14px!important}}
 .action-tile .t-ico{{font-size:1.7em;filter:drop-shadow(0 0 10px rgba(255,255,255,0.4));flex-shrink:0}}
@@ -1961,8 +1986,6 @@ body::after{{
 @keyframes pulseGreen{{0%,100%{{box-shadow:0 0 24px rgba(16,185,129,0.32)}}50%{{box-shadow:0 0 46px rgba(16,185,129,0.7)}}}}
 .action-tile.amber{{background:linear-gradient(135deg,var(--amber),#C2410C)!important}}
 .action-tile.pink{{background:linear-gradient(135deg,var(--magenta),#9D174D)!important}}
-
-/* ═══ FORMS ═══ */
 .field{{display:flex;flex-direction:column;gap:8px}}
 .field-label{{font-size:0.72em;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-2)}}
 input,textarea,select{{
@@ -1976,7 +1999,6 @@ input:focus,textarea:focus{{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(3
 textarea{{line-height:1.75;resize:vertical;font-size:0.82em}}
 input[type="file"]{{padding:14px;border-style:dashed;cursor:pointer;color:var(--txt-2);font-family:'Rajdhani',sans-serif;font-weight:600}}
 input[type="file"]:hover{{border-color:var(--magenta);color:var(--magenta)}}
-
 .chips{{display:flex;flex-wrap:wrap;gap:10px}}
 .chip{{
   display:inline-flex;align-items:center;gap:10px;padding:11px 15px;border-radius:12px;
@@ -1991,10 +2013,8 @@ input[type="file"]:hover{{border-color:var(--magenta);color:var(--magenta)}}
   color:var(--txt);box-shadow:0 0 24px rgba(34,211,238,0.28);
 }}
 .chip input{{width:15px;height:15px;accent-color:var(--cyan);cursor:pointer}}
-
 .stack{{display:flex;flex-direction:column;gap:18px}}
 .grid-2{{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
-
 .acc-box{{padding:20px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(135deg,rgba(5,7,15,0.5),rgba(15,22,40,0.4))}}
 .acc-box.cyan{{border-color:rgba(34,211,238,0.3)}}
 .acc-box.pink{{border-color:rgba(236,72,153,0.3)}}
@@ -2007,14 +2027,11 @@ input[type="file"]:hover{{border-color:var(--magenta);color:var(--magenta)}}
 .box-title.violet{{color:var(--violet)}}
 .box-title.green{{color:var(--green)}}
 .box-title.amber{{color:var(--amber)}}
-
 .row{{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}}
 .btn-row{{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}}
 .hint{{color:var(--txt-3);font-size:0.76em;line-height:1.65;font-style:italic;margin-top:6px}}
 .hint b{{color:var(--amber);font-style:normal}}
 .hint code{{background:rgba(168,85,247,0.15);color:#C084FC;padding:2px 7px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:0.9em}}
-
-/* ═══ TABLE ═══ */
 .table-shell{{overflow-x:auto;max-height:480px;overflow-y:auto;border-radius:12px;border:1px solid var(--line);background:rgba(5,7,15,0.55)}}
 .table-shell::-webkit-scrollbar{{width:8px;height:8px}}
 .table-shell::-webkit-scrollbar-thumb{{background:linear-gradient(180deg,var(--cyan),var(--violet));border-radius:4px}}
@@ -2031,8 +2048,6 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
 .badge-live{{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:rgba(16,185,129,0.16);color:var(--green);font-size:0.7em;font-weight:700;letter-spacing:1px;border:1px solid rgba(16,185,129,0.35)}}
 .badge-live::before{{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite}}
 .empty-row td{{text-align:center;padding:40px 20px;color:var(--txt-3);font-style:italic}}
-
-/* ═══ LOG ═══ */
 .log-shell{{
   height:420px;overflow-y:auto;padding:18px;border-radius:12px;border:1px solid var(--line);
   background:#02040A;font-family:'JetBrains Mono',monospace;font-size:12px;
@@ -2047,12 +2062,8 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
 .log-shell::-webkit-scrollbar-thumb{{background:linear-gradient(180deg,var(--green),var(--cyan));border-radius:5px;border:2px solid #02040A}}
 .log-shell > div{{padding:3px 10px;border-left:2px solid transparent;transition:all 0.18s;word-break:break-word}}
 .log-shell > div:hover{{background:rgba(34,211,238,0.06);border-left-color:var(--cyan)}}
-
-/* ═══ FOOTER ═══ */
 .foot{{text-align:center;padding:24px;color:var(--txt-3);font-size:0.8em;letter-spacing:1.6px;border-top:1px solid var(--line);margin-top:14px}}
 .foot b{{color:var(--cyan)}}
-
-/* ═══ TOAST ═══ */
 .toast{{
   visibility:hidden;position:fixed;right:22px;bottom:22px;z-index:9999;
   min-width:280px;max-width:88vw;padding:16px 22px;border-radius:12px;
@@ -2063,10 +2074,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
   opacity:0;transform:translateY(20px);transition:all 0.35s cubic-bezier(.2,.7,.3,1);
 }}
 .toast.show{{visibility:visible;opacity:1;transform:translateY(0)}}
-
 .section{{scroll-margin-top:20px}}
-
-/* ═══ MOBILE ═══ */
 @media (max-width:900px){{
   .sidebar{{position:fixed;left:0;top:0;transform:translateX(-100%);box-shadow:10px 0 36px rgba(0,0,0,0.7)}}
   .sidebar.open{{transform:translateX(0)}}
@@ -2098,13 +2106,12 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 <div class="layout">
 
-  <!-- ═══ SIDEBAR ═══ -->
   <aside class="sidebar" id="sidebar">
     <div class="sb-logo">
       <div class="sb-mark">🔥</div>
       <div>
         <h2>MAHIR</h2>
-        <p>Squad Bot</p>
+        <p>Squad Bot v2</p>
       </div>
     </div>
     <nav class="sb-nav">
@@ -2117,10 +2124,8 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
     </nav>
   </aside>
 
-  <!-- ═══ MAIN ═══ -->
   <main class="main">
 
-    <!-- TOPBAR -->
     <header class="topbar">
       <div class="tb-left">
         <button class="tb-menu" onclick="toggleSidebar()">☰</button>
@@ -2133,13 +2138,11 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </header>
 
-    <!-- STATUS BANNER -->
     <div class="status-banner" id="status-banner"
          style="background:{'linear-gradient(135deg,#EF4444,#7F1D1D)' if stopped_now else 'linear-gradient(135deg,#10B981,#065F46)'};">
       <span>{'🛑 BOTS STOPPED' if stopped_now else '🟢 BOTS RUNNING'}</span>
     </div>
 
-    <!-- STATS -->
     <section class="section" id="section-dashboard">
       <div class="stats-grid">
         <div class="stat-card s-green">
@@ -2173,7 +2176,6 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
-    <!-- QUICK ACTIONS -->
     <section class="panel">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico amber">⚡</div> Quick Actions</div>
@@ -2199,7 +2201,6 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
-    <!-- ACCOUNT MANAGER -->
     <section class="panel section" id="section-accounts">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico">👥</div> Account Manager</div>
@@ -2235,7 +2236,6 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
-    <!-- SQUAD CONFIG -->
     <section class="panel section" id="section-config">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico green">⚙️</div> Squad Configuration</div>
@@ -2244,11 +2244,15 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       <form id="squad-form" onsubmit="saveSquadConfig(event)">
         <div class="stack">
           <div class="field">
-            <label class="field-label">👥 Squad Size</label>
+            <label class="field-label">👥 Squad Size (1-7 Players)</label>
             <div class="chips">
-              <label class="chip"><input type="radio" name="squad_size" value="3" {'checked' if cur_size==3 else ''}><span>4 Players</span></label>
-              <label class="chip"><input type="radio" name="squad_size" value="4" {'checked' if cur_size==4 else ''}><span>5 Players</span></label>
-              <label class="chip"><input type="radio" name="squad_size" value="5" {'checked' if cur_size==5 else ''}><span>6 Players</span></label>
+              <label class="chip"><input type="radio" name="squad_size" value="1" {'checked' if cur_size==1 else ''}><span>1 · Solo</span></label>
+              <label class="chip"><input type="radio" name="squad_size" value="2" {'checked' if cur_size==2 else ''}><span>2 · Duo</span></label>
+              <label class="chip"><input type="radio" name="squad_size" value="3" {'checked' if cur_size==3 else ''}><span>3 · Trio</span></label>
+              <label class="chip"><input type="radio" name="squad_size" value="4" {'checked' if cur_size==4 else ''}><span>4 · Squad</span></label>
+              <label class="chip"><input type="radio" name="squad_size" value="5" {'checked' if cur_size==5 else ''}><span>5</span></label>
+              <label class="chip"><input type="radio" name="squad_size" value="6" {'checked' if cur_size==6 else ''}><span>6</span></label>
+              <label class="chip"><input type="radio" name="squad_size" value="7" {'checked' if cur_size==7 else ''}><span>7 · Custom</span></label>
             </div>
           </div>
           <div class="field">
@@ -2256,6 +2260,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
             <div class="chips">
               <label class="chip"><input type="radio" name="world_recruit_type" value="1" {'checked' if cur_recruit_type=="1" else ''}><span>Type 1</span></label>
               <label class="chip"><input type="radio" name="world_recruit_type" value="2" {'checked' if cur_recruit_type=="2" else ''}><span>Type 2</span></label>
+              <label class="chip"><input type="radio" name="world_recruit_type" value="3" {'checked' if cur_recruit_type=="3" else ''}><span>Type 3</span></label>
               <label class="chip"><input type="radio" name="world_recruit_type" value="half" {'checked' if cur_recruit_type=="half" else ''}><span>Half</span></label>
               <label class="chip"><input type="radio" name="world_recruit_type" value="random" {'checked' if cur_recruit_type=="random" else ''}><span>Random</span></label>
             </div>
@@ -2300,7 +2305,6 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </form>
     </section>
 
-    <!-- EMOTE MANAGER -->
     <section class="panel section" id="section-emotes">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico pink">🎭</div> Emote Manager</div>
@@ -2333,7 +2337,6 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
-    <!-- ACTIVE BOTS -->
     <section class="panel section" id="section-bots">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico">📋</div> Active Bots</div>
@@ -2352,7 +2355,6 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
-    <!-- LIVE LOG -->
     <section class="panel section" id="section-logs">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico red">📜</div> Live Log</div>
@@ -2364,14 +2366,13 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       <div id="live-log" class="log-shell">📡 Waiting for logs...</div>
     </section>
 
-    <footer class="foot">© 2026 <b>MAHIR SQUAD BOT</b> · Premium Cyberpunk Edition</footer>
+    <footer class="foot">© 2026 <b>MAHIR SQUAD BOT v2</b> · Premium Cyberpunk Edition</footer>
   </main>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
 let CURRENT_STOPPED = {str(stopped_now).lower()};
-
 function toggleSidebar() {{
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('overlay').classList.toggle('show');
@@ -2714,11 +2715,11 @@ refreshStatus();    setInterval(refreshStatus, 3000);
             params = parse_qs(raw)
             try:
                 size = int(params.get('squad_size', ['4'])[0])
-                if size not in (3, 4, 5): size = 4
+                if size not in (1, 2, 3, 4, 5, 6, 7): size = 4
                 rc = int(params.get('world_recruit_count', ['3'])[0])
                 if rc < 1 or rc > 10: rc = 3
                 wrt = params.get('world_recruit_type', ['1'])[0]
-                if wrt not in ('1', '2', 'half', 'random'): wrt = '1'
+                if wrt not in ('1', '2', '3', 'half', 'random'): wrt = '1'
                 lt = int(params.get('squad_lifetime_sec', ['5'])[0])
                 if lt < 5 or lt > 3600: lt = 5
                 ar  = params.get('auto_recreate', ['0'])[0] == '1'
@@ -2765,7 +2766,7 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                     web_config['kick_delay_sec'] = kds
                     web_config['kick_msg'] = km
                 save_web_config()
-                console.print(f"[green]⚙️ Config Updated[/green]")
+                console.print(f"[green]⚙️ Config Updated (size={size}, recruit={wrt})[/green]")
                 self._text_response('OK')
             except Exception as e:
                 self._text_response(f"Error: {e}", 400)
@@ -2816,14 +2817,17 @@ refreshStatus();    setInterval(refreshStatus, 3000);
 #   MAIN
 # ================================================================
 def start_web_server():
-    port = 8080
+    port = int(os.environ.get("PORT", 8080))  # ✅ Railway PORT
     try:
         server = HTTPServer(('0.0.0.0', port), BotHandler)
-        console.print(f"[bold green]🌐 Dashboard: http://localhost:{port}[/bold green]")
-        webbrowser.open(f'http://localhost:{port}')
+        console.print(f"[bold green]🌐 Dashboard: http://0.0.0.0:{port}[/bold green]")
+        # Railway-এ webbrowser.open() কাজ করবে না, তাই স্কিপ
+        if not os.environ.get("RAILWAY_ENVIRONMENT"):
+            try: webbrowser.open(f'http://localhost:{port}')
+            except: pass
         server.serve_forever()
-    except OSError:
-        console.print(f"[bold red]❌ Port {port} in use.[/bold red]")
+    except OSError as e:
+        console.print(f"[bold red]❌ Port {port} error: {e}[/bold red]")
 
 async def main_async():
     print(render('MAHIR', colors=['white', 'red'], align='center'))
@@ -2833,11 +2837,11 @@ async def main_async():
     await asyncio.sleep(1)
     asyncio.create_task(batch_account_loader())
     console.print(Panel(
-        "[bold green]✅ Squad System Active[/bold green]\n"
+        "[bold green]✅ Squad System Active (v2)[/bold green]\n"
         "[cyan]🌐 http://localhost:8080[/cyan]\n"
         f"[white]📦 {CURRENT_OB} | {FREEFIRE_VERSION_NAME}[/white]\n"
-        "[magenta]👥 Squad: OpEnSq + cHSq22[/magenta]\n"
-        "[yellow]📢 Recruit: Type 1 / 2 / Half / Random[/yellow]\n"
+        "[magenta]👥 Squad Size: 1-7 Players (Smart cHSq)[/magenta]\n"
+        "[yellow]📢 Recruit: Type 1 / 2 / 3 / Half / Random[/yellow]\n"
         "[blue]💬 Team Chat: ENABLED ✅[/blue]\n"
         "[bold magenta]👗 Auto Bundle · 🎭 Join Emote · ✨ Animation[/bold magenta]\n"
         "[bold green]🎭 Auto Emote Equip ON LOGIN ✅[/bold green]\n"
@@ -2845,7 +2849,7 @@ async def main_async():
         "[bold cyan]🎭 Web-Editable Join Emote Pool ✅[/bold cyan]\n"
         "[bold violet]🤖 Bot Self-Emote Toggle ✅[/bold violet]\n"
         "[bold yellow]⚠️ NO FALLBACK — Pure API Data[/bold yellow]",
-        title="[bold red]🔥 MAHIR SQUAD BOT — CYBERPUNK 🔥[/bold red]",
+        title="[bold red]🔥 MAHIR SQUAD BOT v2 — CYBERPUNK 🔥[/bold red]",
         border_style="bright_red", expand=False))
     while True: await asyncio.sleep(3600)
 
