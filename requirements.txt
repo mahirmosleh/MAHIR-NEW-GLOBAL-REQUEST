@@ -10,6 +10,4 @@ protobuf-decoder
 pytz
 aiohttp
 python-cfonts
-flask
-gunicorn
 rich
