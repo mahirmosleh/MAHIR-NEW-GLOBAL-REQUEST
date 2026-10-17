@@ -637,7 +637,7 @@ async def Mahir_bundle_packet_2(bundle_id, key, iv, region="bd"):
         console.print(f"[red]bundle2 err: {e}[/red]"); return None
 
 # ================================================================
-#   SQUAD PACKETS (UPDATED WITH NEW PACKETS FROM IMAGE)
+#   SQUAD PACKETS
 # ================================================================
 async def MAHIR_OPenSq(key, iv, region, version_):
     fields = {
@@ -659,47 +659,11 @@ async def MAHIR_OPenSq(key, iv, region, version_):
     }
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
 
-# ================================================================
-#   UPDATED cHSq FUNCTIONS (FROM IMAGE)
-# ================================================================
-async def MAHIR_cHSq11(Nu, bot_uid, key, iv, region):
-    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 1, 4: 1, 5: "\x01", 8: 2}}
-    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
-    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
-
 async def MAHIR_cHSq22(Nu, bot_uid, key, iv, region):
-    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 1, 4: 1, 5: "\x01", 8: 2}}
+    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 1, 5: "\x1a", 8: 1}}
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
-async def MAHIR_cHSq33(Nu, bot_uid, key, iv, region):
-    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 1, 5: "\x01", 8: 2}}
-    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
-    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
-
-async def MAHIR_cHSq44(Nu, bot_uid, key, iv, region):
-    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 15, 5: "\x01", 8: 6, 18: 42}}
-    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
-    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
-
-async def MAHIR_cHSq55(Nu, bot_uid, key, iv, region):
-    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 15, 5: "\x01", 8: 1}}
-    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
-    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
-
-async def MAHIR_cHSq66(Nu, bot_uid, key, iv, region):
-    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 1, 4: 43, 5: "\x0b", 8: 1}}
-    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
-    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
-
-async def MAHIR_cHSq77(Nu, bot_uid, key, iv, region):
-    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 46, 5: "\x0a", 7: 6, 8: 12, 16: 1}}
-    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
-    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
-
-# ================================================================
-#   UPDATED WORLD RECRUIT FUNCTIONS (FROM IMAGE)
-# ================================================================
 async def MAHIR_World_Recruit(tid, key, iv):
     try:
         fields = {1: 66, 2: {1: int(tid), 5: {}, 9: "", 10: 1}}
@@ -710,19 +674,6 @@ async def MAHIR_World_Recruit2(tid, key, iv):
     try:
         fields = {1: 66, 2: {1: int(tid), 5: "\u0007", 9: {}, 10: 1}}
         return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
-    except: return None
-
-async def MAHIR_World_Recruit3(tid, key, iv):
-    try:
-        fields = {1: 66, 2: {1: int(tid), 2: 301, 3: 303, 5: "\x07", 9: "", 10: 1}}
-        return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
-    except: return None
-
-async def MAHIR_StopRequest(key, iv, region, bot_own_id):
-    try:
-        fields = {1: 70, 2: {1: int(bot_own_id)}}
-        pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
-        return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
     except: return None
 
 async def MAHIR_LeaveSquad(key, iv, region, bot_own_id):
@@ -1317,12 +1268,7 @@ class SquadBot:
             for i in range(n):
                 try:
                     ut = rt if rt in ("1", "2") else ("1" if rt == "half" and i % 2 == 0 else "2" if rt == "half" else random.choice(["1","2"]))
-                    if ut == "1":
-                        pkt = await MAHIR_World_Recruit(self.bot_uid, self.key, self.iv)
-                    elif ut == "2":
-                        pkt = await MAHIR_World_Recruit2(self.bot_uid, self.key, self.iv)
-                    else:
-                        pkt = await MAHIR_World_Recruit3(self.bot_uid, self.key, self.iv)
+                    pkt = await (MAHIR_World_Recruit if ut == "1" else MAHIR_World_Recruit2)(self.bot_uid, self.key, self.iv)
                     if pkt:
                         self.online_writer.write(pkt); await self.online_writer.drain()
                         if ut == "1": s1 += 1
@@ -1352,10 +1298,7 @@ class SquadBot:
                 await asyncio.sleep(0.3)
             except: pass
             try:
-                # Randomly select a cHSq function from the new pool
-                sq_funcs = [MAHIR_cHSq11, MAHIR_cHSq22, MAHIR_cHSq33, MAHIR_cHSq44, MAHIR_cHSq55, MAHIR_cHSq66, MAHIR_cHSq77]
-                sq_func = random.choice(sq_funcs)
-                sp = await sq_func(sc, self.bot_uid, self.key, self.iv, self.region)
+                sp = await MAHIR_cHSq22(sc, self.bot_uid, self.key, self.iv, self.region)
                 self.online_writer.write(sp); await self.online_writer.drain()
                 await asyncio.sleep(0.3)
             except: pass
@@ -2816,10 +2759,11 @@ refreshStatus();    setInterval(refreshStatus, 3000);
 #   MAIN
 # ================================================================
 def start_web_server():
-    port = int(os.environ.get("PORT", 8080))  # Railway-র ডাইনামিক পোর্ট ধরবে
+    port = 8080
     try:
         server = HTTPServer(('0.0.0.0', port), BotHandler)
-        console.print(f"[bold green]🌐 Dashboard: http://0.0.0.0:{port}[/bold green]")
+        console.print(f"[bold green]🌐 Dashboard: http://localhost:{port}[/bold green]")
+        webbrowser.open(f'http://localhost:{port}')
         server.serve_forever()
     except OSError:
         console.print(f"[bold red]❌ Port {port} in use.[/bold red]")
