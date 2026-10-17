@@ -2816,11 +2816,10 @@ refreshStatus();    setInterval(refreshStatus, 3000);
 #   MAIN
 # ================================================================
 def start_web_server():
-    port = 8080
+    port = int(os.environ.get("PORT", 8080))  # Railway-র ডাইনামিক পোর্ট ধরবে
     try:
         server = HTTPServer(('0.0.0.0', port), BotHandler)
-        console.print(f"[bold green]🌐 Dashboard: http://localhost:{port}[/bold green]")
-        webbrowser.open(f'http://localhost:{port}')
+        console.print(f"[bold green]🌐 Dashboard: http://0.0.0.0:{port}[/bold green]")
         server.serve_forever()
     except OSError:
         console.print(f"[bold red]❌ Port {port} in use.[/bold red]")
