@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# MAHIR SQUAD BOT — PREMIUM CYBERPUNK EDITION (FIXED)
+# MAHIR SQUAD BOT — PREMIUM CYBERPUNK EDITION (UPDATED v3)
 # ✅ Auto Update · Auto Emote · Auto Animation · Dual Recruit
 # ✅ Web Account Manager · Stop All · Auto Kick
 # ✅ Web-Editable Join Emotes · Bot Self-Emote Toggle
-# ✅ Premium Cyberpunk RGB Dashboard
+# ✅ CHSQ Modes (1, 2, 3, 4, Random) · Fast Login
+# ✅ Custom Join Delays (Bundle, Emote, Animation, Welcome, Kick)
 
 import subprocess, sys, importlib, os, ssl, json, time, random, asyncio, threading, gc, re, struct, base64
 from collections import deque
@@ -260,6 +261,7 @@ DEFAULT_COMMANDS = {
 # ================================================================
 web_config = {
     "squad_size": 4,
+    "squad_create_mode": "1", # 1, 2, 3, 4, random
     "world_recruit_count": 3,
     "world_recruit_type": "1",
     "squad_lifetime_sec": 5,
@@ -273,13 +275,18 @@ web_config = {
     "auto_animation": True,
     "animation_interval_sec": 10,
     "auto_emote_on_join": True,
+    
+    # ⭐ NEW CUSTOM JOIN DELAYS
     "emote_join_delay_sec": 0.5,
+    "bundle_join_delay_sec": 1.0,
+    "animation_join_delay_sec": 1.5,
+    "welcome_delay_sec": 2.0,
+    "kick_delay_sec": 3.0,
+    
     "join_emote_pool": DEFAULT_JOIN_EMOTES[:],
     "auto_kick_on_join": False,
-    "kick_delay_sec": 1.0,
     "kick_msg": "[B][C][FF0000]🚫 ACCESS DENIED!\n[FFFFFF]You have been auto-kicked.",
     "auto_welcome_on_join": True,
-    "welcome_delay_sec": 0.5,
     "bot_self_emote_enabled": False,
     "bot_self_emote_pool": DEFAULT_JOIN_EMOTES[:],
     "bot_self_emote_interval": 8.0,
@@ -323,8 +330,12 @@ def load_web_config():
                 if isinstance(v, int) and lo <= v <= hi: web_config[k] = v
 
             float_fields = {
-                "recruit_delay_sec": (0.5, 30), "emote_join_delay_sec": (0.1, 30),
-                "kick_delay_sec": (0.1, 30), "welcome_delay_sec": (0.1, 30),
+                "recruit_delay_sec": (0.5, 30), 
+                "emote_join_delay_sec": (0.1, 30),
+                "bundle_join_delay_sec": (0.1, 30),
+                "animation_join_delay_sec": (0.1, 30),
+                "kick_delay_sec": (0.1, 30), 
+                "welcome_delay_sec": (0.1, 30),
                 "bot_self_emote_interval": (1, 300),
             }
             for k, (lo, hi) in float_fields.items():
@@ -333,6 +344,9 @@ def load_web_config():
 
             wrt = saved.get("world_recruit_type")
             if wrt in ("1", "2", "half", "random"): web_config["world_recruit_type"] = wrt
+            
+            scm = saved.get("squad_create_mode")
+            if scm in ("1", "2", "3", "4", "random"): web_config["squad_create_mode"] = scm
 
             bool_fields = [
                 "auto_recreate", "auto_recruit_on_join", "auto_recruit_on_leave",
@@ -391,13 +405,14 @@ def save_web_config():
     try:
         with web_config_lock:
             data = {k: web_config[k] for k in [
-                "squad_size", "world_recruit_count", "world_recruit_type",
+                "squad_size", "squad_create_mode", "world_recruit_count", "world_recruit_type",
                 "squad_lifetime_sec", "auto_recreate", "welcome_msg",
                 "auto_recruit_on_join", "auto_recruit_on_leave", "recruit_delay_sec",
                 "auto_bundle_on_join", "bundle_count_on_join", "auto_animation",
                 "animation_interval_sec", "auto_emote_on_join", "emote_join_delay_sec",
-                "join_emote_pool", "auto_kick_on_join", "kick_delay_sec", "kick_msg",
-                "auto_welcome_on_join", "welcome_delay_sec",
+                "bundle_join_delay_sec", "animation_join_delay_sec", "welcome_delay_sec", "kick_delay_sec",
+                "join_emote_pool", "auto_kick_on_join", "kick_msg",
+                "auto_welcome_on_join",
                 "bot_self_emote_enabled", "bot_self_emote_pool", "bot_self_emote_interval",
             ]}
             data["commands"] = to_json_safe(web_config["commands"])
@@ -499,7 +514,6 @@ Hr = {
 }
 
 def xBunnEr():
-    """Returns working Avatar IDs as Integer"""
     return random.choice([
         902000011, 902000013, 902047016, 902049015,
         902000154, 902000127, 902000207, 902000305,
@@ -659,8 +673,23 @@ async def MAHIR_OPenSq(key, iv, region, version_):
     }
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', key, iv)
 
-async def MAHIR_cHSq22(Nu, bot_uid, key, iv, region):
-    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 1, 5: "\x1a", 8: 1}}
+async def MAHIR_cHSq1(bot_uid, key, iv, region):
+    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 15, 5: "01", 8: 6, 18: 42}}
+    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
+
+async def MAHIR_cHSq2(bot_uid, key, iv, region):
+    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 1, 5: "01", 8: 2}}
+    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
+
+async def MAHIR_cHSq3(bot_uid, key, iv, region):
+    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 1, 4: 43, 5: "0b", 8: 1, 19: 1, 20: 1}}
+    pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
+
+async def MAHIR_cHSq4(bot_uid, key, iv, region):
+    fields = {1: 17, 2: {1: int(bot_uid), 2: 1, 3: 3, 4: 46, 5: "0a", 7: 9, 8: 12, 16: 1}}
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
@@ -681,59 +710,27 @@ async def MAHIR_LeaveSquad(key, iv, region, bot_own_id):
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
-# ================================================================
-# ⭐ FIXED: MAHIR_SendSquadMsg (using mahir.py reference)
-# ================================================================
 async def MAHIR_SendSquadMsg(squad_owner, message, bot_uid, key, iv):
-    """
-    Send message in squad chat using correct packet structure.
-    Reference: mahir.py (working version)
-    """
     try:
-        if not squad_owner or not bot_uid:
-            return None
-        
-        # Ensure they are int
-        squad_owner = int(squad_owner)
-        bot_uid = int(bot_uid)
-        avatar_id = xBunnEr()  # sync function
-        if not isinstance(avatar_id, int):
-            avatar_id = 902000011
-        
+        if not squad_owner or not bot_uid: return None
+        squad_owner = int(squad_owner); bot_uid = int(bot_uid)
+        avatar_id = xBunnEr()
         msg_str = str(message)
         preview = msg_str[:15] if len(msg_str) > 15 else msg_str
-        
         fields = {
             1: 1,
             2: {
-                1: squad_owner,
-                2: bot_uid,
-                3: 0,
-                4: msg_str,
-                5: int(datetime.now().timestamp()),
+                1: squad_owner, 2: bot_uid, 3: 0, 4: msg_str, 5: int(datetime.now().timestamp()),
                 7: 6,
                 9: {
-                    1: f"[C][FF0000]{preview}",
-                    2: avatar_id,
-                    3: 2,
-                    4: 330,
-                    5: 800000304,
-                    6: 66,
-                    7: 66,
-                    8: "MAHIR",
-                    9: 66,
-                    10: 1,
-                    11: 1,
-                    13: {1: 68, 2: 67},
+                    1: f"[C][FF0000]{preview}", 2: avatar_id, 3: 2, 4: 330, 5: 800000304,
+                    6: 66, 7: 66, 8: "MAHIR", 9: 66, 10: 1, 11: 1, 13: {1: 68, 2: 67},
                     14: {
-                        1: 1158053040,
-                        2: 8,
+                        1: 1158053040, 2: 8,
                         3: b"\x10\x15\x08\x0A\x0B\x15\x0C\x0F\x11\x04\x07\x02\x03\x0D\x0E\x12\x01\x05\x06"
                     }
                 },
-                10: "en",
-                13: {3: 1},
-                14: {}
+                10: "en", 13: {3: 1}, 14: {}
             }
         }
         proto = await CrEaTe_ProTo(fields)
@@ -744,7 +741,6 @@ async def MAHIR_SendSquadMsg(squad_owner, message, bot_uid, key, iv):
         return None
 
 async def MAHIR_OpenSquadChat(squad_id, chat_code, key, iv):
-    """Open squad chat using chat_code"""
     try:
         squad_id = int(squad_id)
         fields = {1: 3, 2: {1: squad_id, 2: 3, 3: "en", 4: str(chat_code)}}
@@ -758,8 +754,7 @@ async def MAHIR_OpenSquadChat(squad_id, chat_code, key, iv):
 async def Emote_k(TarGeT, idT, K, V, region):
     try:
         bot_self_id = int(BOT_OWN_ID) if 'BOT_OWN_ID' in globals() and globals().get('BOT_OWN_ID') else 0
-    except:
-        bot_self_id = 0
+    except: bot_self_id = 0
     fields = {1: 21, 2: {1: bot_self_id, 2: 909000001, 5: {1: int(TarGeT), 3: int(idT)}}}
     if region.lower() == "ind": pkt = '0514'
     elif region.lower() == "bd": pkt = "0519"
@@ -1021,7 +1016,7 @@ async def batch_account_loader():
                     active_bots[uid] = bot
                     bot_tasks[uid] = asyncio.create_task(bot.keep_online_forever())
                     console.print(f"[bold green]✨ UID {uid} → Launched[/bold green]")
-                    await asyncio.sleep(0.05)
+                    await asyncio.sleep(0.01) # Optimized Fast Login
             else:
                 for uid in list(bot_tasks.keys()):
                     try:
@@ -1073,7 +1068,7 @@ def AuTo_ResTartinG():
         ResTarTinG()
 
 # ================================================================
-#   SQUAD BOT CLIENT (FIXED)
+#   SQUAD BOT CLIENT
 # ================================================================
 class SquadBot:
     def __init__(self, uid, password, server='bd', index=0):
@@ -1119,7 +1114,7 @@ class SquadBot:
             if pkt and self.online_writer and not self.online_writer.is_closing():
                 self.online_writer.write(pkt); await self.online_writer.drain()
                 self.last_emote_on_join_at = time.time()
-                console.print(f"[bold magenta]🎭 [{self.uid}] Join Emote → {target_uid} (id={emote_id}, delay={delay}s)[/bold magenta]")
+                console.print(f"[bold magenta]🎭 [{self.uid}] Join Emote → {target_uid} (id={emote_id})[/bold magenta]")
                 return True
         except Exception as e:
             console.print(f"[yellow]⚠ [{self.uid}] Join emote err: {e}[/yellow]")
@@ -1133,7 +1128,9 @@ class SquadBot:
             with web_config_lock:
                 enabled = web_config.get("auto_bundle_on_join", True)
                 count = web_config.get("bundle_count_on_join", 2)
+                delay = float(web_config.get("bundle_join_delay_sec", 1.0))
             if not enabled: return False
+            await asyncio.sleep(max(0.05, delay))
             count = max(1, min(5, int(count)))
             sent = 0
             for i in range(count):
@@ -1142,90 +1139,93 @@ class SquadBot:
                     pkt = await (Mahir_bundle_packet if i == 0 else Mahir_bundle_packet_2)(bid, self.key, self.iv, self.region or "bd")
                     if pkt:
                         self.online_writer.write(pkt); await self.online_writer.drain()
-                        sent += 1; await asyncio.sleep(0.5)
+                        sent += 1; await asyncio.sleep(0.3)
                 except: break
             self.last_bundle_at = time.time()
-            if sent: console.print(f"[bold magenta]👗 [{self.uid}] Bundle × {sent}[/bold magenta]")
+            if sent: console.print(f"[bold magenta]👗 [{self.uid}] Bundle Equipped × {sent}[/bold magenta]")
             return sent > 0
 
-    # ⭐ FIXED: _auto_kick_member
+    async def _send_animation_on_join(self):
+        if not self.online_writer or not self.bot_uid: return False
+        with web_config_lock:
+            enabled = web_config.get("auto_animation", True)
+            delay = float(web_config.get("animation_join_delay_sec", 1.5))
+        if not enabled: return False
+        await asyncio.sleep(max(0.05, delay))
+        try:
+            anim_id = random.choice(ANIMATION_POOL)
+            pkt = await mahir_animation_packet(anim_id, self.key, self.iv)
+            if pkt and self.online_writer and not self.online_writer.is_closing():
+                self.online_writer.write(pkt); await self.online_writer.drain()
+                console.print(f"[cyan]✨ [{self.uid}] Join Animation ({anim_id})[/cyan]")
+                return True
+        except Exception as e:
+            console.print(f"[yellow]⚠ [{self.uid}] Join Animation err: {e}[/yellow]")
+        return False
+
+    async def _send_bundle_on_self(self):
+        try:
+            if not self.online_writer or not self.bot_uid: return False
+            bid = random.choice(AUTO_BUNDLE_POOL)
+            pkt = await Mahir_bundle_packet(bid, self.key, self.iv, self.region or "bd")
+            if pkt:
+                self.online_writer.write(pkt)
+                await self.online_writer.drain()
+                console.print(f"[bold magenta]👗 [{self.uid}] Self Bundle Equipped ({bid})[/bold magenta]")
+                return True
+        except Exception as e:
+            console.print(f"[yellow]⚠ [{self.uid}] Self bundle err: {e}[/yellow]")
+        return False
+
     async def _auto_kick_member(self, target_uid, target_name="Player"):
         try:
             with web_config_lock:
                 enabled = web_config.get("auto_kick_on_join", False)
                 delay = float(web_config.get("kick_delay_sec", 1.0))
                 km = web_config.get("kick_msg", "")
-            if not enabled:
-                return False
-            if not self.online_writer:
-                return False
+            if not enabled: return False
+            if not self.online_writer: return False
             await asyncio.sleep(max(0.05, delay))
-            
-            # Step 1: Send Kick packet
             try:
                 kick_pkt = await KickTarget(int(target_uid), self.key, self.iv)
                 if kick_pkt and self.online_writer and not self.online_writer.is_closing():
-                    self.online_writer.write(kick_pkt)
-                    await self.online_writer.drain()
+                    self.online_writer.write(kick_pkt); await self.online_writer.drain()
                     console.print(f"[bold red]🚫 [{self.uid}] Auto-kicked → {target_name} ({target_uid})[/bold red]")
-            except Exception as e:
-                console.print(f"[yellow]⚠ Kick pkt err: {e}[/yellow]")
+            except Exception as e: console.print(f"[yellow]⚠ Kick pkt err: {e}[/yellow]")
             
-            # Step 2: Send kick message in squad chat
             try:
                 km2 = str(km).replace("{user_name}", str(target_name)).replace("{user_id}", str(target_uid))
                 sq_id = self.current_squad_id
                 if sq_id and self.chat_writer and self.bot_uid:
-                    msg_pkt = await MAHIR_SendSquadMsg(
-                        int(sq_id), km2, int(self.bot_uid), self.key, self.iv
-                    )
+                    msg_pkt = await MAHIR_SendSquadMsg(int(sq_id), km2, int(self.bot_uid), self.key, self.iv)
                     if msg_pkt:
-                        self.chat_writer.write(msg_pkt)
-                        await self.chat_writer.drain()
-            except Exception as e:
-                console.print(f"[yellow]⚠ Kick msg err: {e}[/yellow]")
+                        self.chat_writer.write(msg_pkt); await self.chat_writer.drain()
+            except Exception as e: console.print(f"[yellow]⚠ Kick msg err: {e}[/yellow]")
             return True
         except Exception as e:
             console.print(f"[red]❌ Auto-kick err: {e}[/red]")
             return False
 
-    # ⭐ FIXED: _auto_welcome_member
     async def _auto_welcome_member(self, squad_id, chat_code, target_uid, target_name="Player"):
         try:
             with web_config_lock:
                 enabled = web_config.get("auto_welcome_on_join", True)
                 delay = float(web_config.get("welcome_delay_sec", 0.5))
-            if not enabled:
-                return False
-            if not self.chat_writer:
-                return False
-            if not self.bot_uid:
-                return False
-            
+            if not enabled or not self.chat_writer or not self.bot_uid: return False
             await asyncio.sleep(max(0.05, delay))
-            
-            # Step 1: Open squad chat using chat_code
             try:
                 if chat_code:
                     op = await MAHIR_OpenSquadChat(int(squad_id), chat_code, self.key, self.iv)
                     if op:
-                        self.chat_writer.write(op)
-                        await self.chat_writer.drain()
+                        self.chat_writer.write(op); await self.chat_writer.drain()
                         await asyncio.sleep(0.2)
-            except Exception as e:
-                console.print(f"[yellow]⚠ Chat open err: {e}[/yellow]")
+            except Exception as e: console.print(f"[yellow]⚠ Chat open err: {e}[/yellow]")
             
-            # Step 2: Send welcome message
-            with web_config_lock:
-                wt = web_config.get("welcome_msg", DEFAULT_WELCOME_MSG)
+            with web_config_lock: wt = web_config.get("welcome_msg", DEFAULT_WELCOME_MSG)
             wm = wt.replace("{user_name}", str(target_name))
-            
-            mp = await MAHIR_SendSquadMsg(
-                int(squad_id), wm, int(self.bot_uid), self.key, self.iv
-            )
+            mp = await MAHIR_SendSquadMsg(int(squad_id), wm, int(self.bot_uid), self.key, self.iv)
             if mp:
-                self.chat_writer.write(mp)
-                await self.chat_writer.drain()
+                self.chat_writer.write(mp); await self.chat_writer.drain()
                 console.print(f"[bold green]✅ [{self.uid}] Welcome → {target_name}[/bold green]")
                 return True
             return False
@@ -1234,16 +1234,13 @@ class SquadBot:
             return False
 
     async def _bot_self_emote_loop(self):
-        """Bot Self Emote loop"""
         while self.is_running and self.is_online:
             try:
                 with web_config_lock:
                     enabled = web_config.get("bot_self_emote_enabled", False)
                     pool = list(web_config.get("bot_self_emote_pool", DEFAULT_JOIN_EMOTES))
                     interval = float(web_config.get("bot_self_emote_interval", 8.0))
-                if not enabled or not pool:
-                    await asyncio.sleep(2); continue
-                if not self.online_writer or not self.bot_uid:
+                if not enabled or not pool or not self.online_writer or not self.bot_uid:
                     await asyncio.sleep(2); continue
                 emote_id = random.choice(pool)
                 pkt = await Emote_k(int(self.bot_uid), int(emote_id), self.key, self.iv, self.region or "bd")
@@ -1285,23 +1282,42 @@ class SquadBot:
     async def _build_and_send_squad(self):
         try:
             with web_config_lock:
-                sc = web_config.get("squad_size", 4)
+                sc_mode = web_config.get("squad_create_mode", "1")
                 rcc = web_config.get("world_recruit_count", 3)
+            
             op = await MAHIR_OPenSq(self.key, self.iv, self.region, FREEFIRE_VERSION_NAME)
             if not op or not self.online_writer: return False
             self.online_writer.write(op); await self.online_writer.drain()
             await asyncio.sleep(0.4)
             console.print(f"[cyan]ℹ [{self.uid}] Squad Created ✅[/cyan]")
+            
             try:
                 op2 = await MAHIR_OPenSq(self.key, self.iv, self.region, FREEFIRE_VERSION_NAME)
                 self.online_writer.write(op2); await self.online_writer.drain()
                 await asyncio.sleep(0.3)
             except: pass
+            
             try:
-                sp = await MAHIR_cHSq22(sc, self.bot_uid, self.key, self.iv, self.region)
-                self.online_writer.write(sp); await self.online_writer.drain()
-                await asyncio.sleep(0.3)
-            except: pass
+                if sc_mode == "1":
+                    sp = await MAHIR_cHSq1(self.bot_uid, self.key, self.iv, self.region)
+                elif sc_mode == "2":
+                    sp = await MAHIR_cHSq2(self.bot_uid, self.key, self.iv, self.region)
+                elif sc_mode == "3":
+                    sp = await MAHIR_cHSq3(self.bot_uid, self.key, self.iv, self.region)
+                elif sc_mode == "4":
+                    sp = await MAHIR_cHSq4(self.bot_uid, self.key, self.iv, self.region)
+                else: # random
+                    mode = random.choice(["1", "2", "3", "4"])
+                    func = {"1": MAHIR_cHSq1, "2": MAHIR_cHSq2, "3": MAHIR_cHSq3, "4": MAHIR_cHSq4}[mode]
+                    sp = await func(self.bot_uid, self.key, self.iv, self.region)
+                    console.print(f"[cyan]ℹ [{self.uid}] Random CHSQ Mode Selected: {mode}[/cyan]")
+                
+                if sp:
+                    self.online_writer.write(sp); await self.online_writer.drain()
+                    await asyncio.sleep(0.3)
+            except Exception as e:
+                console.print(f"[red]CHSQ Mode err [{self.uid}]: {e}[/red]")
+                
             await self._send_world_recruit(reason="initial", count=rcc)
             self.squad_created = True
             self.squad_created_at = time.time()
@@ -1334,24 +1350,14 @@ class SquadBot:
                 console.print(f"[red]Recreate err [{self.uid}]: {e}[/red]")
             return False
 
-    # ⭐ FIXED: send_team_msg
     async def send_team_msg(self, message: str, squad_id=None):
-        """Send a message to squad chat with proper error handling"""
         try:
-            if not self.chat_writer:
-                return False
-            if not self.bot_uid:
-                return False
+            if not self.chat_writer or not self.bot_uid: return False
             sq_id = squad_id or self.current_squad_id
-            if not sq_id:
-                return False
-            
-            pkt = await MAHIR_SendSquadMsg(
-                int(sq_id), message, int(self.bot_uid), self.key, self.iv
-            )
+            if not sq_id: return False
+            pkt = await MAHIR_SendSquadMsg(int(sq_id), message, int(self.bot_uid), self.key, self.iv)
             if pkt:
-                self.chat_writer.write(pkt)
-                await self.chat_writer.drain()
+                self.chat_writer.write(pkt); await self.chat_writer.drain()
                 return True
         except Exception as e:
             console.print(f"[yellow]⚠ [{self.uid}] send_team_msg err: {e}[/yellow]")
@@ -1381,8 +1387,7 @@ class SquadBot:
             if cl == "my id":
                 await self.send_team_msg(f"[B][C][00FFFF]👤 YOUR INFO\n[B][C][FFFFFF]Name: [00FF00]{sender_name}\n[B][C][FFFFFF]UID : [FFFF00]{sender_uid}")
                 return True
-            with web_config_lock:
-                cmds = dict(web_config.get("commands", {}))
+            with web_config_lock: cmds = dict(web_config.get("commands", {}))
             for trig, cfg in cmds.items():
                 if not cfg.get("enabled", True): continue
                 mm = cfg.get("match", "contains")
@@ -1415,6 +1420,9 @@ class SquadBot:
                 console.print(f"[cyan]ℹ [{self.uid}] ONLINE Connected ✅[/cyan]")
                 if not await self._build_and_send_squad():
                     self.is_online = False; await asyncio.sleep(10); continue
+                
+                asyncio.create_task(self._send_bundle_on_self())
+
                 if self._animation_task and not self._animation_task.done(): self._animation_task.cancel()
                 self._animation_task = asyncio.create_task(self._animation_loop())
                 if self._self_emote_task and not self._self_emote_task.done(): self._self_emote_task.cancel()
@@ -1461,8 +1469,12 @@ class SquadBot:
                                             if us not in self.squad_members:
                                                 sq_id = soi or (int(self.current_squad_id) if self.current_squad_id else None)
                                                 console.print(f"[cyan][{self.uid}][/cyan] [green]➜ Joined:[/green] [yellow]{pn}[/yellow] ({us})")
+                                                
+                                                # ⭐ Trigger Join Actions with Custom Delays
                                                 asyncio.create_task(self._send_emote_on_join(us))
                                                 asyncio.create_task(self._send_bundle_on_join())
+                                                asyncio.create_task(self._send_animation_on_join())
+                                                
                                                 with web_config_lock:
                                                     kick_on = web_config.get("auto_kick_on_join", False)
                                                     welcome_on = web_config.get("auto_welcome_on_join", True)
@@ -1513,7 +1525,7 @@ class SquadBot:
                 pkt = await mahir_animation_packet(anim_id, self.key, self.iv)
                 if pkt and self.online_writer and not self.online_writer.is_closing():
                     self.online_writer.write(pkt); await self.online_writer.drain()
-                    console.print(f"[cyan]✨ [{self.uid}] Animation ({anim_id})[/cyan]")
+                    console.print(f"[cyan]✨ [{self.uid}] Loop Animation ({anim_id})[/cyan]")
                 await asyncio.sleep(max(5, int(interval)))
             except asyncio.CancelledError: break
             except: await asyncio.sleep(5)
@@ -1567,16 +1579,16 @@ class SquadBot:
                 self.seen_restart_ts = get_restart_timestamp()
                 self.tasks = []
                 oi, at = await GeNeRaTeAccAccess(self.uid, self.password)
-                if not oi: update_bot_info(self.uid, status="❌ Auth Failed"); await asyncio.sleep(10); continue
+                if not oi: update_bot_info(self.uid, status="❌ Auth Failed"); await asyncio.sleep(5); continue
                 payload = await EncRypTMajoRLoGin(oi, at, FREEFIRE_VERSION_NAME)
                 resp = await MajorLogin(payload)
-                if not resp: update_bot_info(self.uid, status="❌ Login Failed"); await asyncio.sleep(10); continue
+                if not resp: update_bot_info(self.uid, status="❌ Login Failed"); await asyncio.sleep(5); continue
                 try: auth = await DecRypTMajoRLoGin(resp)
-                except: update_bot_info(self.uid, status="❌ Decrypt Failed"); await asyncio.sleep(10); continue
+                except: update_bot_info(self.uid, status="❌ Decrypt Failed"); await asyncio.sleep(5); continue
                 if not getattr(auth, 'token', None) or not getattr(auth, 'url', None):
-                    update_bot_info(self.uid, status="❌ Empty Auth"); await asyncio.sleep(10); continue
+                    update_bot_info(self.uid, status="❌ Empty Auth"); await asyncio.sleep(5); continue
                 ld = await GetLoginData(auth.url, payload, auth.token)
-                if not ld: update_bot_info(self.uid, status="❌ Data Failed"); await asyncio.sleep(10); continue
+                if not ld: update_bot_info(self.uid, status="❌ Data Failed"); await asyncio.sleep(5); continue
                 from Pb2 import PorTs_pb2
                 pd = PorTs_pb2.GetLoginData(); pd.ParseFromString(ld)
                 self.key, self.iv = auth.key, auth.iv
@@ -1597,7 +1609,7 @@ class SquadBot:
                 cip, cpp = pd.AccountIP_Port.split(":")
                 oa = create_auth_token_online(auth.account_uid, auth.token, auth.timestamp, auth.key, auth.iv)
                 ca = create_auth_token_chat(auth.account_uid, auth.token, auth.timestamp, auth.key, auth.iv)
-                if not oa or not ca: update_bot_info(self.uid, status="❌ Token Failed"); await asyncio.sleep(10); continue
+                if not oa or not ca: update_bot_info(self.uid, status="❌ Token Failed"); await asyncio.sleep(5); continue
                 console.print(f"[green]✔ Online: {self.Nm} | {self.region}[/green]")
                 try: await equip_emote_on_login(auth.token, logger=lambda m: console.print(f"[cyan][{self.uid}] {m}[/cyan]"))
                 except: pass
@@ -1625,7 +1637,7 @@ class SquadBot:
             if is_stopped(): console.print(f"[red]🛑 [{self.uid}] Halted[/red]"); break
             if get_restart_timestamp() > self.seen_restart_ts:
                 console.print(f"[green]♻️ [{self.uid}] Reconnecting...[/green]"); continue
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
 
     async def _monitor_restart(self):
         while self.is_running:
@@ -1647,7 +1659,7 @@ class SquadBot:
                 return
 
 # ================================================================
-#   WEB SERVER — PREMIUM CYBERPUNK DASHBOARD (REDESIGNED)
+#   WEB SERVER — PREMIUM GLASSMORPHISM DASHBOARD
 # ================================================================
 class BotHandler(BaseHTTPRequestHandler):
     def _json_response(self, data, status=200):
@@ -1680,6 +1692,7 @@ class BotHandler(BaseHTTPRequestHandler):
                 cur_online, cur_total, cur_threads = online_count, total_accounts, len(active_accounts)
             with web_config_lock:
                 cur_size = web_config.get("squad_size", 4)
+                cur_mode = web_config.get("squad_create_mode", "1")
                 cur_recruit = web_config.get("world_recruit_count", 3)
                 cur_recruit_type = web_config.get("world_recruit_type", "1")
                 cur_lifetime = web_config.get("squad_lifetime_sec", 5)
@@ -1693,12 +1706,17 @@ class BotHandler(BaseHTTPRequestHandler):
                 cur_anim = web_config.get("auto_animation", True)
                 cur_anim_int = web_config.get("animation_interval_sec", 10)
                 cur_emote_join = web_config.get("auto_emote_on_join", True)
+                
+                # New Delays
                 cur_emote_delay = web_config.get("emote_join_delay_sec", 0.5)
+                cur_bundle_delay = web_config.get("bundle_join_delay_sec", 1.0)
+                cur_anim_join_delay = web_config.get("animation_join_delay_sec", 1.5)
+                cur_welcome_delay = web_config.get("welcome_delay_sec", 2.0)
+                cur_kick_delay = web_config.get("kick_delay_sec", 3.0)
+                
                 cur_kick_join = web_config.get("auto_kick_on_join", False)
-                cur_kick_delay = web_config.get("kick_delay_sec", 1.0)
                 kick_msg_raw = web_config.get("kick_msg", "")
                 cur_welcome_join = web_config.get("auto_welcome_on_join", True)
-                cur_welcome_delay = web_config.get("welcome_delay_sec", 0.5)
                 cur_self_emote = web_config.get("bot_self_emote_enabled", False)
                 cur_self_emote_int = web_config.get("bot_self_emote_interval", 8.0)
                 join_emote_pool = list(web_config.get("join_emote_pool", DEFAULT_JOIN_EMOTES))
@@ -1714,646 +1732,513 @@ class BotHandler(BaseHTTPRequestHandler):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAHIR · Control Center</title>
+<title>MAHIR · Premium Control Center</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {{
-  --bg-0:#05070F; --bg-1:#0A0F1E; --panel:#0F1628; --panel-2:#131B33;
-  --line:#1E2A44; --line-hi:rgba(56,189,248,0.35);
-  --cyan:#22D3EE; --blue:#3B82F6; --violet:#A855F7; --magenta:#EC4899;
-  --green:#10B981; --amber:#F59E0B; --red:#EF4444;
-  --txt:#F8FAFC; --txt-2:#94A3B8; --txt-3:#64748B;
-  --r:16px; --r-sm:10px;
+  --bg-color: #050810;
+  --panel-bg: rgba(16, 24, 48, 0.6);
+  --panel-border: rgba(56, 189, 248, 0.15);
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --accent-cyan: #38BDF8;
+  --accent-purple: #A855F7;
+  --accent-pink: #EC4899;
+  --accent-green: #10B981;
+  --accent-red: #EF4444;
+  --accent-yellow: #F59E0B;
 }}
-*{{margin:0;padding:0;box-sizing:border-box}}
-html{{scroll-behavior:smooth}}
-body{{
-  font-family:'Rajdhani',system-ui,sans-serif;
-  background:var(--bg-0); color:var(--txt); min-height:100vh;
-  overflow-x:hidden; position:relative; font-weight:500;
-}}
-body::before{{
-  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-  background:
-    radial-gradient(1000px 700px at -5% -10%, rgba(34,211,238,0.10), transparent 55%),
-    radial-gradient(1000px 700px at 105% 110%, rgba(168,85,247,0.10), transparent 55%),
-    radial-gradient(800px 600px at 50% 50%, rgba(236,72,153,0.05), transparent 70%);
-}}
-body::after{{
-  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-  background-image:
-    linear-gradient(rgba(34,211,238,0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34,211,238,0.028) 1px, transparent 1px);
-  background-size:52px 52px;
-  mask-image:radial-gradient(ellipse at center, black 30%, transparent 92%);
-  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 92%);
+*{{margin:0;padding:0;box-sizing:border-box;}}
+body {{
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+  background-attachment: fixed;
 }}
 
-/* ═══ SIDEBAR ═══ */
-.layout{{display:flex; min-height:100vh; position:relative; z-index:1}}
-.sidebar{{
-  width:250px; flex-shrink:0;
-  background:linear-gradient(180deg, rgba(10,15,30,0.98), rgba(5,7,15,0.98));
-  border-right:1px solid var(--line);
-  padding:24px 16px;
-  position:sticky; top:0; height:100vh; overflow-y:auto;
-  transition:transform 0.35s cubic-bezier(.4,0,.2,1);
-  z-index:100;
+/* Sidebar */
+.sidebar {{
+  width: 260px;
+  background: rgba(10, 15, 30, 0.8);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--panel-border);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  z-index: 100;
+  transition: transform 0.3s ease;
 }}
-.sidebar::-webkit-scrollbar{{width:5px}}
-.sidebar::-webkit-scrollbar-thumb{{background:linear-gradient(180deg, var(--cyan), var(--violet));border-radius:3px}}
-.sb-logo{{display:flex;align-items:center;gap:12px;padding:8px 8px 24px;border-bottom:1px solid var(--line);margin-bottom:20px}}
-.sb-mark{{
-  width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:1.5em;
-  background:linear-gradient(135deg,var(--cyan),var(--violet) 55%,var(--magenta));
-  box-shadow:0 0 24px rgba(34,211,238,0.5), inset 0 0 12px rgba(255,255,255,0.15);
-  animation:logoPulse 3s ease-in-out infinite;
+.logo-area {{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 24px;
 }}
-@keyframes logoPulse{{50%{{box-shadow:0 0 40px rgba(168,85,247,0.7), inset 0 0 20px rgba(255,255,255,0.25)}}}}
-.sb-logo h2{{
-  font-family:'Orbitron',sans-serif;font-size:1.05em;font-weight:900;letter-spacing:1.8px;line-height:1.1;
-  background:linear-gradient(135deg,#fff,var(--cyan));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+.logo-icon {{
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  border-radius: 12px;
+  display: grid; place-items: center;
+  font-size: 1.2rem;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
 }}
-.sb-logo p{{font-size:0.62em;color:var(--txt-3);letter-spacing:2px;text-transform:uppercase;font-weight:700}}
-.sb-nav{{display:flex;flex-direction:column;gap:5px}}
-.sb-link{{
-  display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;
-  color:var(--txt-2);text-decoration:none;font-weight:600;font-size:0.92em;letter-spacing:0.5px;
-  cursor:pointer;transition:all 0.22s;border:1px solid transparent;
+.logo-text h2 {{
+  font-size: 1.1rem; font-weight: 700;
+  background: linear-gradient(to right, #fff, var(--accent-cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
 }}
-.sb-link:hover{{background:rgba(34,211,238,0.07);color:var(--txt);border-color:rgba(34,211,238,0.15)}}
-.sb-link.active{{
-  background:linear-gradient(90deg,rgba(34,211,238,0.18),rgba(168,85,247,0.12));
-  color:var(--cyan);border-color:rgba(34,211,238,0.4);
-  box-shadow:inset 3px 0 0 var(--cyan),0 0 22px rgba(34,211,238,0.15);
+.logo-text p {{ font-size: 0.65rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }}
+.nav-links {{ display: flex; flex-direction: column; gap: 8px; }}
+.nav-item {{
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 10px;
+  color: var(--text-muted); text-decoration: none;
+  font-size: 0.9rem; font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }}
-.sb-link .ico{{font-size:1.15em;width:22px;text-align:center}}
+.nav-item:hover, .nav-item.active {{
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--accent-cyan);
+  border-left: 3px solid var(--accent-cyan);
+}}
 
-/* ═══ MAIN ═══ */
-.main{{flex:1;padding:22px 26px 44px;min-width:0}}
-
-/* ═══ TOPBAR ═══ */
-.topbar{{
-  position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;
-  padding:20px 26px;background:linear-gradient(135deg,rgba(15,22,40,0.92),rgba(19,27,51,0.75));
-  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
-  border:1px solid var(--line);border-radius:var(--r);margin-bottom:20px;flex-wrap:wrap;overflow:hidden;
+/* Main Content */
+.main-content {{
+  flex: 1;
+  margin-left: 260px;
+  padding: 30px;
+  position: relative;
 }}
-.topbar::before{{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),var(--magenta),transparent);
-  background-size:200% 100%;animation:slide 5s linear infinite;
+.top-bar {{
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 30px;
+  padding: 16px 24px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
 }}
-@keyframes slide{{to{{background-position:200% 0}}}}
-.tb-left{{display:flex;align-items:center;gap:14px;flex-wrap:wrap}}
-.tb-right{{display:flex;align-items:center;gap:8px;flex-wrap:wrap}}
-.tb-menu{{display:none;width:38px;height:38px;border-radius:10px;background:rgba(34,211,238,0.08);border:1px solid var(--line-hi);color:var(--cyan);cursor:pointer;font-size:1.15em}}
-.tb-title{{font-family:'Orbitron',sans-serif;font-size:1.1em;font-weight:900;letter-spacing:2px}}
-.tb-title span{{background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
-
-.pill{{
-  display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;
-  font-size:0.7em;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
-  border:1px solid var(--line-hi);background:rgba(34,211,238,0.06);color:var(--cyan);
+.page-title {{ font-size: 1.2rem; font-weight: 600; }}
+.status-badge {{
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 1px;
+  background: rgba(16, 185, 129, 0.15); color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }}
-.pill.green{{background:rgba(16,185,129,0.08);color:var(--green);border-color:rgba(16,185,129,0.35)}}
-.pill.red{{background:rgba(239,68,68,0.08);color:var(--red);border-color:rgba(239,68,68,0.35)}}
-.pill.violet{{background:rgba(168,85,247,0.08);color:var(--violet);border-color:rgba(168,85,247,0.35)}}
-.pill.amber{{background:rgba(245,158,11,0.08);color:var(--amber);border-color:rgba(245,158,11,0.35)}}
-.dot{{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor;animation:blink 1.4s infinite}}
-@keyframes blink{{50%{{opacity:0.4;transform:scale(0.85)}}}}
+.status-badge.stopped {{ background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }}
+.dot {{ width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; animation: pulse 1.5s infinite; }}
+@keyframes pulse {{ 50% {{ opacity: 0.5; }} }}
 
-/* ═══ BANNER ═══ */
-.status-banner{{
-  position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:14px;
-  padding:18px 24px;border-radius:var(--r);margin-bottom:22px;
-  font-family:'Orbitron',sans-serif;font-weight:900;letter-spacing:3px;font-size:1em;
-  color:#fff;border:1px solid rgba(255,255,255,0.15);text-transform:uppercase;
-  transition:background 0.4s ease;
+/* Grid Layouts */
+.dashboard-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }}
+.stat-card {{
+  background: var(--panel-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border); border-radius: 16px;
+  padding: 24px; display: flex; align-items: center; gap: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }}
-.status-banner::after{{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
-  animation:swipe 3.5s linear infinite;pointer-events:none;
+.stat-card:hover {{ transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 20px rgba(56, 189, 248, 0.1); }}
+.stat-icon {{
+  width: 50px; height: 50px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 1.5rem;
+  background: rgba(255,255,255,0.05);
 }}
-@keyframes swipe{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}
+.stat-info h3 {{ font-size: 1.8rem; font-weight: 700; color: var(--accent-cyan); line-height: 1; }}
+.stat-info p {{ font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }}
 
-/* ═══ STATS ═══ */
-.stats-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:22px}}
-.stat-card{{
-  position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);
-  border-radius:var(--r);padding:22px;display:flex;align-items:center;gap:16px;
-  transition:all 0.3s cubic-bezier(.2,.7,.3,1);
+/* Panels */
+.panel {{
+  background: var(--panel-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border); border-radius: 16px;
+  padding: 24px; margin-bottom: 24px;
 }}
-.stat-card::before{{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(circle at 100% 0%,var(--tint,transparent) 0%,transparent 55%);
-  opacity:0.6;pointer-events:none;
+.panel-header {{
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px; padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }}
-.stat-card:hover{{transform:translateY(-3px);border-color:var(--line-hi);box-shadow:0 14px 42px rgba(0,0,0,0.4),0 0 34px var(--glow,rgba(34,211,238,0.15))}}
-.stat-ico{{width:52px;height:52px;flex-shrink:0;border-radius:14px;display:grid;place-items:center;font-size:1.45em;background:rgba(255,255,255,0.04);border:1px solid var(--line-hi)}}
-.stat-body{{display:flex;flex-direction:column;gap:3px;min-width:0}}
-.stat-value{{font-family:'Orbitron',sans-serif;font-size:1.85em;font-weight:900;line-height:1;color:var(--vc,var(--cyan));text-shadow:0 0 22px var(--vc,var(--cyan));word-break:break-all}}
-.stat-label{{font-size:0.68em;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-2)}}
-.stat-card.s-green{{--tint:rgba(16,185,129,0.35);--glow:rgba(16,185,129,0.22);--vc:#34D399}}
-.stat-card.s-blue{{--tint:rgba(59,130,246,0.35);--glow:rgba(59,130,246,0.22);--vc:#60A5FA}}
-.stat-card.s-violet{{--tint:rgba(168,85,247,0.35);--glow:rgba(168,85,247,0.22);--vc:#C084FC}}
-.stat-card.s-cyan{{--tint:rgba(34,211,238,0.35);--glow:rgba(34,211,238,0.22);--vc:#22D3EE}}
+.panel-title {{ display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 600; }}
 
-/* ═══ PANELS ═══ */
-.panel{{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:24px;margin-bottom:20px;transition:border-color 0.3s}}
-.panel:hover{{border-color:var(--line-hi)}}
-.panel-head{{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-bottom:16px;margin-bottom:20px;border-bottom:1px solid var(--line)}}
-.panel-title{{display:flex;align-items:center;gap:12px;font-family:'Orbitron',sans-serif;font-size:0.98em;font-weight:700;letter-spacing:2px;text-transform:uppercase}}
-.panel-ico{{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:1.05em;background:linear-gradient(135deg,rgba(34,211,238,0.18),rgba(168,85,247,0.14));border:1px solid var(--line-hi)}}
-.panel-ico.amber{{background:linear-gradient(135deg,rgba(245,158,11,0.18),rgba(251,146,60,0.14))}}
-.panel-ico.pink{{background:linear-gradient(135deg,rgba(236,72,153,0.18),rgba(168,85,247,0.14))}}
-.panel-ico.green{{background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.14))}}
-.panel-ico.red{{background:linear-gradient(135deg,rgba(239,68,68,0.18),rgba(220,38,38,0.14))}}
-
-/* ═══ BUTTONS ═══ */
-.btn{{
-  position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:10px;
-  padding:13px 24px;border:1px solid rgba(255,255,255,0.12);border-radius:12px;
-  font-family:'Rajdhani',sans-serif;font-size:0.9em;font-weight:700;letter-spacing:1.5px;
-  text-transform:uppercase;color:#fff;cursor:pointer;
-  transition:transform 0.2s,box-shadow 0.28s,border-color 0.28s;
-  background:linear-gradient(135deg,var(--red),#B91C1C);
+/* Buttons */
+.btn {{
+  padding: 12px 20px; border-radius: 10px;
+  font-family: 'Poppins', sans-serif; font-size: 0.85rem; font-weight: 600;
+  border: none; cursor: pointer; transition: all 0.2s ease;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  text-transform: uppercase; letter-spacing: 1px;
 }}
-.btn:hover:not(:disabled){{transform:translateY(-2px);border-color:rgba(255,255,255,0.3);box-shadow:0 12px 30px rgba(0,0,0,0.45)}}
-.btn:disabled{{opacity:0.55;cursor:not-allowed}}
-.btn.green{{background:linear-gradient(135deg,var(--green),#047857)}}
-.btn.amber{{background:linear-gradient(135deg,var(--amber),#D97706)}}
-.btn.pink{{background:linear-gradient(135deg,var(--magenta),#BE185D)}}
-.btn.blue{{background:linear-gradient(135deg,var(--blue),#1D4ED8)}}
-.btn.violet{{background:linear-gradient(135deg,var(--violet),#7E22CE)}}
-.btn.ghost{{background:rgba(255,255,255,0.04);border:1px solid var(--line-hi);color:var(--txt)}}
-.btn.ghost:hover:not(:disabled){{background:rgba(34,211,238,0.08);border-color:var(--cyan)}}
+.btn:hover {{ transform: translateY(-2px); opacity: 0.9; }}
+.btn:disabled {{ opacity: 0.5; cursor: not-allowed; transform: none; }}
+.btn-red {{ background: linear-gradient(135deg, var(--accent-red), #b91c1c); color: white; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); }}
+.btn-green {{ background: linear-gradient(135deg, var(--accent-green), #047857); color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }}
+.btn-blue {{ background: linear-gradient(135deg, var(--accent-cyan), #0369a1); color: white; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3); }}
+.btn-purple {{ background: linear-gradient(135deg, var(--accent-purple), #7e22ce); color: white; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3); }}
+.btn-pink {{ background: linear-gradient(135deg, var(--accent-pink), #be185d); color: white; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3); }}
 
-.action-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}}
-.action-tile{{display:flex!important;align-items:center;justify-content:flex-start!important;gap:16px;padding:18px 22px!important;text-transform:none!important;letter-spacing:0!important;min-height:80px;border-radius:14px!important}}
-.action-tile .t-ico{{font-size:1.7em;filter:drop-shadow(0 0 10px rgba(255,255,255,0.4));flex-shrink:0}}
-.action-tile .t-txt{{display:flex;flex-direction:column;gap:3px;text-align:left;min-width:0}}
-.action-tile .t-main{{font-family:'Orbitron',sans-serif;font-size:0.92em;font-weight:900;letter-spacing:1.3px;text-transform:uppercase;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
-.action-tile .t-sub{{font-size:0.72em;font-weight:600;letter-spacing:0.8px;opacity:0.8;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
-.action-tile.stop{{background:linear-gradient(135deg,var(--red),#7F1D1D)!important;box-shadow:0 0 30px rgba(239,68,68,0.35)!important;animation:pulseRed 2.4s ease-in-out infinite}}
-.action-tile.start{{background:linear-gradient(135deg,var(--green),#065F46)!important;box-shadow:0 0 30px rgba(16,185,129,0.35)!important;animation:pulseGreen 2.4s ease-in-out infinite}}
-@keyframes pulseRed{{0%,100%{{box-shadow:0 0 24px rgba(239,68,68,0.32)}}50%{{box-shadow:0 0 46px rgba(239,68,68,0.7)}}}}
-@keyframes pulseGreen{{0%,100%{{box-shadow:0 0 24px rgba(16,185,129,0.32)}}50%{{box-shadow:0 0 46px rgba(16,185,129,0.7)}}}}
-.action-tile.amber{{background:linear-gradient(135deg,var(--amber),#C2410C)!important}}
-.action-tile.pink{{background:linear-gradient(135deg,var(--magenta),#9D174D)!important}}
-
-/* ═══ FORMS ═══ */
-.field{{display:flex;flex-direction:column;gap:8px}}
-.field-label{{font-size:0.72em;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-2)}}
-input,textarea,select{{
-  width:100%;padding:13px 15px;
-  background:rgba(5,7,15,0.8);border:1px solid var(--line);
-  border-radius:12px;font-family:'JetBrains Mono',monospace;font-size:0.88em;
-  color:var(--cyan);outline:none;transition:border-color 0.2s,box-shadow 0.2s;
+/* Forms */
+.form-group {{ display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }}
+.form-label {{ font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }}
+input, textarea, select {{
+  width: 100%; padding: 12px 16px;
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; color: var(--accent-cyan);
+  font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+  transition: all 0.2s;
 }}
-input::placeholder,textarea::placeholder{{color:var(--txt-3)}}
-input:focus,textarea:focus{{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,0.12),0 0 24px rgba(34,211,238,0.2)}}
-textarea{{line-height:1.75;resize:vertical;font-size:0.82em}}
-input[type="file"]{{padding:14px;border-style:dashed;cursor:pointer;color:var(--txt-2);font-family:'Rajdhani',sans-serif;font-weight:600}}
-input[type="file"]:hover{{border-color:var(--magenta);color:var(--magenta)}}
-
-.chips{{display:flex;flex-wrap:wrap;gap:10px}}
-.chip{{
-  display:inline-flex;align-items:center;gap:10px;padding:11px 15px;border-radius:12px;
-  border:1px solid var(--line);background:rgba(5,7,15,0.6);color:var(--txt-2);
-  font-weight:600;font-size:0.85em;cursor:pointer;user-select:none;
-  transition:all 0.24s cubic-bezier(.2,.7,.3,1);
+input:focus, textarea:focus {{ border-color: var(--accent-cyan); outline: none; box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }}
+.radio-group {{ display: flex; flex-wrap: wrap; gap: 12px; }}
+.radio-label {{
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px; border-radius: 10px;
+  background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer; font-size: 0.85rem; font-weight: 500;
+  transition: all 0.2s;
 }}
-.chip:hover{{border-color:var(--cyan);background:rgba(34,211,238,0.07);color:var(--txt);transform:translateY(-2px)}}
-.chip:has(input:checked){{
-  border-color:var(--cyan);
-  background:linear-gradient(135deg,rgba(34,211,238,0.18),rgba(168,85,247,0.14));
-  color:var(--txt);box-shadow:0 0 24px rgba(34,211,238,0.28);
+.radio-label:has(input:checked) {{
+  border-color: var(--accent-cyan); background: rgba(56, 189, 248, 0.1);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
 }}
-.chip input{{width:15px;height:15px;accent-color:var(--cyan);cursor:pointer}}
+.radio-label input {{ width: auto; accent-color: var(--accent-cyan); }}
 
-.stack{{display:flex;flex-direction:column;gap:18px}}
-.grid-2{{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
+/* Tables */
+.table-wrapper {{ overflow-x: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }}
+table {{ width: 100%; border-collapse: collapse; text-align: left; }}
+th, td {{ padding: 14px 16px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); }}
+th {{ background: rgba(0,0,0,0.4); color: var(--accent-cyan); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px; }}
+tr:hover {{ background: rgba(56, 189, 248, 0.05); }}
 
-.acc-box{{padding:20px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(135deg,rgba(5,7,15,0.5),rgba(15,22,40,0.4))}}
-.acc-box.cyan{{border-color:rgba(34,211,238,0.3)}}
-.acc-box.pink{{border-color:rgba(236,72,153,0.3)}}
-.acc-box.violet{{border-color:rgba(168,85,247,0.3)}}
-.acc-box.green{{border-color:rgba(16,185,129,0.3)}}
-.acc-box.amber{{border-color:rgba(245,158,11,0.3)}}
-.box-title{{display:flex;align-items:center;gap:10px;font-family:'Orbitron',sans-serif;font-size:0.85em;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}}
-.box-title.cyan{{color:var(--cyan)}}
-.box-title.pink{{color:var(--magenta)}}
-.box-title.violet{{color:var(--violet)}}
-.box-title.green{{color:var(--green)}}
-.box-title.amber{{color:var(--amber)}}
-
-.row{{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}}
-.btn-row{{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}}
-.hint{{color:var(--txt-3);font-size:0.76em;line-height:1.65;font-style:italic;margin-top:6px}}
-.hint b{{color:var(--amber);font-style:normal}}
-.hint code{{background:rgba(168,85,247,0.15);color:#C084FC;padding:2px 7px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:0.9em}}
-
-/* ═══ TABLE ═══ */
-.table-shell{{overflow-x:auto;max-height:480px;overflow-y:auto;border-radius:12px;border:1px solid var(--line);background:rgba(5,7,15,0.55)}}
-.table-shell::-webkit-scrollbar{{width:8px;height:8px}}
-.table-shell::-webkit-scrollbar-thumb{{background:linear-gradient(180deg,var(--cyan),var(--violet));border-radius:4px}}
-table{{width:100%;border-collapse:collapse;text-align:left}}
-th,td{{padding:13px 15px;border-bottom:1px solid var(--line);font-size:0.86em;white-space:nowrap}}
-th{{
-  position:sticky;top:0;z-index:5;
-  background:linear-gradient(180deg,rgba(19,27,51,0.98),rgba(15,22,40,0.98));
-  color:var(--cyan);font-family:'Orbitron',sans-serif;font-size:0.68em;font-weight:700;
-  letter-spacing:1.6px;text-transform:uppercase;
+/* Logs */
+.log-box {{
+  background: #02040a; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+  padding: 16px; height: 400px; overflow-y: auto;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.6;
+  color: #a7f3d0;
 }}
-tbody tr{{transition:background 0.2s}}
-tbody tr:hover{{background:rgba(34,211,238,0.06)}}
-.badge-live{{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:rgba(16,185,129,0.16);color:var(--green);font-size:0.7em;font-weight:700;letter-spacing:1px;border:1px solid rgba(16,185,129,0.35)}}
-.badge-live::before{{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite}}
-.empty-row td{{text-align:center;padding:40px 20px;color:var(--txt-3);font-style:italic}}
+.log-box div {{ padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.02); }}
 
-/* ═══ LOG ═══ */
-.log-shell{{
-  height:420px;overflow-y:auto;padding:18px;border-radius:12px;border:1px solid var(--line);
-  background:#02040A;font-family:'JetBrains Mono',monospace;font-size:12px;
-  line-height:1.8;color:#4ADE80;position:relative;
+/* Toast */
+.toast {{
+  position: fixed; bottom: 24px; right: 24px;
+  padding: 16px 24px; border-radius: 12px;
+  background: var(--panel-bg); backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border); color: white;
+  font-weight: 600; font-size: 0.9rem;
+  transform: translateY(100px); opacity: 0;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000;
 }}
-.log-shell::before{{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:repeating-linear-gradient(0deg,transparent 0,transparent 3px,rgba(34,211,238,0.025) 3px,rgba(34,211,238,0.025) 4px);
-  border-radius:12px;
-}}
-.log-shell::-webkit-scrollbar{{width:9px}}
-.log-shell::-webkit-scrollbar-thumb{{background:linear-gradient(180deg,var(--green),var(--cyan));border-radius:5px;border:2px solid #02040A}}
-.log-shell > div{{padding:3px 10px;border-left:2px solid transparent;transition:all 0.18s;word-break:break-word}}
-.log-shell > div:hover{{background:rgba(34,211,238,0.06);border-left-color:var(--cyan)}}
-
-/* ═══ FOOTER ═══ */
-.foot{{text-align:center;padding:24px;color:var(--txt-3);font-size:0.8em;letter-spacing:1.6px;border-top:1px solid var(--line);margin-top:14px}}
-.foot b{{color:var(--cyan)}}
-
-/* ═══ TOAST ═══ */
-.toast{{
-  visibility:hidden;position:fixed;right:22px;bottom:22px;z-index:9999;
-  min-width:280px;max-width:88vw;padding:16px 22px;border-radius:12px;
-  color:#fff;font-weight:700;font-size:0.95em;
-  background:linear-gradient(135deg,var(--green),#059669);
-  box-shadow:0 14px 42px rgba(0,0,0,0.6),0 0 30px rgba(16,185,129,0.4);
-  border:1px solid rgba(255,255,255,0.18);backdrop-filter:blur(14px);
-  opacity:0;transform:translateY(20px);transition:all 0.35s cubic-bezier(.2,.7,.3,1);
-}}
-.toast.show{{visibility:visible;opacity:1;transform:translateY(0)}}
-
-.section{{scroll-margin-top:20px}}
-
-/* ═══ MOBILE ═══ */
-@media (max-width:900px){{
-  .sidebar{{position:fixed;left:0;top:0;transform:translateX(-100%);box-shadow:10px 0 36px rgba(0,0,0,0.7)}}
-  .sidebar.open{{transform:translateX(0)}}
-  .tb-menu{{display:grid;place-items:center}}
-  .main{{padding:14px 14px 44px}}
-  .row{{grid-template-columns:1fr}}
-  .grid-2{{grid-template-columns:1fr}}
-  .tb-title{{font-size:0.95em}}
-  .stat-value{{font-size:1.5em}}
-}}
-@media (max-width:500px){{
-  .stats-grid{{grid-template-columns:1fr 1fr;gap:10px}}
-  .stat-card{{padding:14px;gap:10px}}
-  .stat-ico{{width:40px;height:40px;font-size:1.2em}}
-  .stat-value{{font-size:1.25em}}
-  .stat-label{{font-size:0.6em;letter-spacing:1.2px}}
-  .panel{{padding:16px}}
-  .action-grid{{grid-template-columns:1fr}}
-  .action-tile{{min-height:64px;padding:14px 16px!important}}
-  .action-tile .t-ico{{font-size:1.4em}}
-  .action-tile .t-main{{font-size:0.82em}}
-  .tb-right .pill{{font-size:0.62em;padding:5px 10px}}
-}}
-.overlay{{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99;display:none;backdrop-filter:blur(3px)}}
-.overlay.show{{display:block}}
+.toast.show {{ transform: translateY(0); opacity: 1; }}
 </style>
 </head>
 <body>
-<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-<div class="layout">
 
-  <!-- ═══ SIDEBAR ═══ -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sb-logo">
-      <div class="sb-mark">🔥</div>
+<aside class="sidebar">
+  <div class="logo-area">
+    <div class="logo-icon">🔥</div>
+    <div class="logo-text">
+      <h2>MAHIR BOT</h2>
+      <p>Premium Edition</p>
+    </div>
+  </div>
+  <nav class="nav-links">
+    <a class="nav-item active" href="#dashboard"><span>📊</span> Dashboard</a>
+    <a class="nav-item" href="#accounts"><span>👥</span> Accounts</a>
+    <a class="nav-item" href="#config"><span>⚙️</span> Squad Config</a>
+    <a class="nav-item" href="#emotes"><span>🎭</span> Emotes</a>
+    <a class="nav-item" href="#logs"><span>📜</span> Live Logs</a>
+  </nav>
+</aside>
+
+<main class="main-content">
+  <header class="top-bar">
+    <div class="page-title">Dashboard Overview</div>
+    <div style="display:flex; gap: 12px; align-items: center;">
+      <span class="status-badge {'stopped' if stopped_now else ''}" id="status-indicator">
+        <span class="dot"></span> {'STOPPED' if stopped_now else 'ONLINE'}
+      </span>
+      <span style="font-size:0.8rem; color:var(--text-muted);">v{FREEFIRE_VERSION_NAME}</span>
+    </div>
+  </header>
+
+  <section id="dashboard" class="dashboard-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="color:var(--accent-green);">🟢</div>
+      <div class="stat-info">
+        <h3 id="stat-online">{cur_online}</h3>
+        <p>Online Bots</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="color:var(--accent-cyan);">📊</div>
+      <div class="stat-info">
+        <h3 id="stat-total">{cur_total}</h3>
+        <p>Total Accounts</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="color:var(--accent-purple);">⚙️</div>
+      <div class="stat-info">
+        <h3 id="stat-threads">{cur_threads}</h3>
+        <p>Active Threads</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">⚡ Quick Actions</div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:12px;">
+      <button class="btn btn-red" id="btn-stop" onclick="doStopAll()" style="display:{'none' if stopped_now else 'inline-flex'};">🛑 Stop All</button>
+      <button class="btn btn-green" id="btn-start" onclick="doStartAll()" style="display:{'inline-flex' if stopped_now else 'none'};">🚀 Start All</button>
+      <button class="btn btn-blue" onclick="doAccountRestart()">♻️ Restart Accounts</button>
+      <button class="btn btn-purple" onclick="doSquadRecreate()">🔄 Recreate Squads</button>
+    </div>
+  </div>
+
+  <section id="accounts" class="panel">
+    <div class="panel-header">
+      <div class="panel-title">👥 Account Manager</div>
+      <span style="font-size:0.8rem; color:var(--text-muted);"><span id="acc-count">0</span> Accounts</span>
+    </div>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+      <div style="background:rgba(0,0,0,0.2); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
+        <h4 style="margin-bottom:16px; color:var(--accent-cyan); font-size:0.9rem;">➕ Add Single Account</h4>
+        <div class="form-group">
+          <input type="text" id="new-uid" placeholder="UID (Numbers only)">
+        </div>
+        <div class="form-group">
+          <input type="text" id="new-pwd" placeholder="Password">
+        </div>
+        <button class="btn btn-green" onclick="addSingleAccount()">Add Account</button>
+      </div>
+      
+      <div style="background:rgba(0,0,0,0.2); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
+        <h4 style="margin-bottom:16px; color:var(--accent-pink); font-size:0.9rem;">📂 Bulk Upload (.txt)</h4>
+        <div class="form-group">
+          <input type="file" id="acc-file" accept=".txt" style="font-family:'Poppins',sans-serif;">
+        </div>
+        <button class="btn btn-pink" onclick="uploadAccFile()">Upload & Replace</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Edit Accounts (Format: uid:password)</label>
+      <textarea id="acc-content" style="height:150px;" spellcheck="false"></textarea>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-green" onclick="saveAllAccounts()" id="acc-save-btn">💾 Save All</button>
+      <button class="btn btn-blue" onclick="reloadAccounts()">🔄 Reload</button>
+      <button class="btn btn-purple" onclick="downloadAccounts()">📥 Download</button>
+    </div>
+  </section>
+
+  <section id="config" class="panel">
+    <div class="panel-header">
+      <div class="panel-title">⚙️ Squad Configuration</div>
+    </div>
+    <form id="squad-form" onsubmit="saveSquadConfig(event)">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div class="form-group">
+          <label class="form-label">👥 Squad Size</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="squad_size" value="3" {'checked' if cur_size==3 else ''}> 4 Players</label>
+            <label class="radio-label"><input type="radio" name="squad_size" value="4" {'checked' if cur_size==4 else ''}> 5 Players</label>
+            <label class="radio-label"><input type="radio" name="squad_size" value="5" {'checked' if cur_size==5 else ''}> 6 Players</label>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">🔧 CHSQ Mode (Squad Create)</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="squad_create_mode" value="1" {'checked' if cur_mode=="1" else ''}> Mode 1</label>
+            <label class="radio-label"><input type="radio" name="squad_create_mode" value="2" {'checked' if cur_mode=="2" else ''}> Mode 2</label>
+            <label class="radio-label"><input type="radio" name="squad_create_mode" value="3" {'checked' if cur_mode=="3" else ''}> Mode 3</label>
+            <label class="radio-label"><input type="radio" name="squad_create_mode" value="4" {'checked' if cur_mode=="4" else ''}> Mode 4</label>
+            <label class="radio-label"><input type="radio" name="squad_create_mode" value="random" {'checked' if cur_mode=="random" else ''}> 🎲 Random</label>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px;">
+        <div class="form-group">
+          <label class="form-label">📢 Recruit Type</label>
+          <select id="world_recruit_type">
+            <option value="1" {'selected' if cur_recruit_type=="1" else ''}>Type 1</option>
+            <option value="2" {'selected' if cur_recruit_type=="2" else ''}>Type 2</option>
+            <option value="half" {'selected' if cur_recruit_type=="half" else ''}>Half</option>
+            <option value="random" {'selected' if cur_recruit_type=="random" else ''}>Random</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">📢 Recruit Count</label>
+          <input type="number" min="1" max="10" id="world_recruit_count" value="{cur_recruit}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">⏱️ Lifetime (sec)</label>
+          <input type="number" min="5" max="3600" id="squad_lifetime_sec" value="{cur_lifetime}">
+        </div>
+      </div>
+
+      <!-- ⭐ NEW JOIN ACTION DELAYS -->
+      <div style="background:rgba(56, 189, 248, 0.05); border:1px dashed rgba(56, 189, 248, 0.3); border-radius:12px; padding:20px; margin-bottom:20px;">
+        <h4 style="color:var(--accent-cyan); font-size:0.9rem; margin-bottom:16px;">⏱️ Join Action Delays (কেউ জয়েন করার পর কত সেকেন্ড পর অ্যাকশন নিবে)</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px;">
+          <div class="form-group">
+            <label class="form-label">🎭 Emote Delay (sec)</label>
+            <input type="number" min="0.1" max="30" step="0.1" id="emote_join_delay_sec" value="{cur_emote_delay}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">👗 Bundle Delay (sec)</label>
+            <input type="number" min="0.1" max="30" step="0.1" id="bundle_join_delay_sec" value="{cur_bundle_delay}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">✨ Animation Delay (sec)</label>
+            <input type="number" min="0.1" max="30" step="0.1" id="animation_join_delay_sec" value="{cur_anim_join_delay}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">💬 Welcome Delay (sec)</label>
+            <input type="number" min="0.1" max="30" step="0.1" id="welcome_delay_sec" value="{cur_welcome_delay}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">🚫 Kick Delay (sec)</label>
+            <input type="number" min="0.1" max="30" step="0.1" id="kick_delay_sec" value="{cur_kick_delay}">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div class="form-group">
+          <label class="form-label">⏱️ Loop Anim Interval (sec)</label>
+          <input type="number" min="5" max="300" id="animation_interval_sec" value="{cur_anim_int}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">👗 Bundle Count (Per Join)</label>
+          <input type="number" min="1" max="5" id="bundle_count_on_join" value="{rc_bundle_count}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">🚫 Kick Message</label>
+        <input type="text" id="kick_msg" value="{kick_msg_esc}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">💬 Welcome Message</label>
+        <textarea id="welcome_msg_ta" style="height:120px;" spellcheck="false">{welcome_esc}</textarea>
+        <span style="font-size:0.7rem; color:var(--text-muted);">Use <code>{{user_name}}</code> for player name.</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">🔧 Feature Toggles</label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="checkbox" id="auto_recreate_chk" {'checked' if cur_auto else ''}> Auto Recreate</label>
+          <label class="radio-label"><input type="checkbox" id="auto_recruit_on_join_chk" {'checked' if rc_join else ''}> Recruit on Join</label>
+          <label class="radio-label"><input type="checkbox" id="auto_bundle_on_join_chk" {'checked' if rc_bundle else ''}> Bundle on Join</label>
+          <label class="radio-label"><input type="checkbox" id="auto_emote_on_join_chk" {'checked' if cur_emote_join else ''}> Emote on Join</label>
+          <label class="radio-label"><input type="checkbox" id="auto_animation_chk" {'checked' if cur_anim else ''}> Auto Animation</label>
+          <label class="radio-label"><input type="checkbox" id="auto_welcome_on_join_chk" {'checked' if cur_welcome_join else ''}> Welcome on Join</label>
+          <label class="radio-label"><input type="checkbox" id="auto_kick_on_join_chk" {'checked' if cur_kick_join else ''}> Auto Kick</label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-green" style="width:100%; margin-top:20px;" id="squad-save-btn">💾 Save Squad Config</button>
+    </form>
+  </section>
+
+  <section id="emotes" class="panel">
+    <div class="panel-header">
+      <div class="panel-title">🎭 Emote Settings</div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
       <div>
-        <h2>MAHIR</h2>
-        <p>Squad Bot</p>
+        <div class="form-group">
+          <label class="form-label">🎭 Join Emote Pool (Comma separated)</label>
+          <textarea id="join_emote_pool" style="height:80px;" spellcheck="false">{join_emote_csv}</textarea>
+        </div>
+      </div>
+      <div>
+        <div class="form-group">
+          <label class="form-label">🤖 Self Emote Settings</label>
+          <div class="radio-group" style="margin-bottom:10px;">
+            <label class="radio-label"><input type="checkbox" id="bot_self_emote_enabled" {'checked' if cur_self_emote else ''}> Enable Self-Emote</label>
+          </div>
+          <input type="number" min="1" max="300" step="0.5" id="bot_self_emote_interval" value="{cur_self_emote_int}" placeholder="Interval (sec)" style="margin-bottom:10px;">
+          <textarea id="bot_self_emote_pool" style="height:50px;" spellcheck="false">{self_emote_csv}</textarea>
+        </div>
       </div>
     </div>
-    <nav class="sb-nav">
-      <a class="sb-link active" href="#section-dashboard" onclick="navTo(this)"><span class="ico">⚡</span> Dashboard</a>
-      <a class="sb-link" href="#section-accounts" onclick="navTo(this)"><span class="ico">👥</span> Accounts</a>
-      <a class="sb-link" href="#section-config" onclick="navTo(this)"><span class="ico">⚙️</span> Squad Config</a>
-      <a class="sb-link" href="#section-emotes" onclick="navTo(this)"><span class="ico">🎭</span> Emotes</a>
-      <a class="sb-link" href="#section-bots" onclick="navTo(this)"><span class="ico">📋</span> Active Bots</a>
-      <a class="sb-link" href="#section-logs" onclick="navTo(this)"><span class="ico">📜</span> Live Logs</a>
-    </nav>
-  </aside>
+    <button class="btn btn-pink" onclick="saveEmotePool()" style="width:100%;" id="emote-save-btn">💾 Save Emote Settings</button>
+  </section>
 
-  <!-- ═══ MAIN ═══ -->
-  <main class="main">
-
-    <!-- TOPBAR -->
-    <header class="topbar">
-      <div class="tb-left">
-        <button class="tb-menu" onclick="toggleSidebar()">☰</button>
-        <div class="tb-title"><span>CONTROL CENTER</span></div>
-        <span class="pill green"><span class="dot"></span> System Online</span>
-      </div>
-      <div class="tb-right">
-        <span class="pill violet">📦 {FREEFIRE_VERSION_NAME}</span>
-        <span class="pill">{CURRENT_OB}</span>
-      </div>
-    </header>
-
-    <!-- STATUS BANNER -->
-    <div class="status-banner" id="status-banner"
-         style="background:{'linear-gradient(135deg,#EF4444,#7F1D1D)' if stopped_now else 'linear-gradient(135deg,#10B981,#065F46)'};">
-      <span>{'🛑 BOTS STOPPED' if stopped_now else '🟢 BOTS RUNNING'}</span>
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📋 Active Bots</div>
     </div>
+    <div class="table-wrapper" style="max-height:400px; overflow-y:auto;">
+      <table>
+        <thead><tr>
+          <th>Bot UID</th><th>UID</th><th>Name</th><th>Region</th><th>Squad ID</th><th>Members</th><th>Status</th>
+        </tr></thead>
+        <tbody id="accounts-tbody">
+          <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-    <!-- STATS -->
-    <section class="section" id="section-dashboard">
-      <div class="stats-grid">
-        <div class="stat-card s-green">
-          <div class="stat-ico">🟢</div>
-          <div class="stat-body">
-            <div class="stat-value" id="stat-online">{cur_online}</div>
-            <div class="stat-label">Online Bots</div>
-          </div>
-        </div>
-        <div class="stat-card s-blue">
-          <div class="stat-ico">📊</div>
-          <div class="stat-body">
-            <div class="stat-value" id="stat-total">{cur_total}</div>
-            <div class="stat-label">Total Accounts</div>
-          </div>
-        </div>
-        <div class="stat-card s-violet">
-          <div class="stat-ico">⚙️</div>
-          <div class="stat-body">
-            <div class="stat-value" id="stat-threads">{cur_threads}</div>
-            <div class="stat-label">Active Threads</div>
-          </div>
-        </div>
-        <div class="stat-card s-cyan">
-          <div class="stat-ico">📦</div>
-          <div class="stat-body">
-            <div class="stat-value" id="stat-version" style="font-size:1.15em;">{FREEFIRE_VERSION_NAME}</div>
-            <div class="stat-label">{CURRENT_OB} · Build</div>
-          </div>
-        </div>
-      </div>
-    </section>
+  <section id="logs" class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📜 Live Logs</div>
+      <button class="btn btn-red" onclick="document.getElementById('live-log').innerHTML=''" style="padding:6px 12px; font-size:0.7rem;">Clear</button>
+    </div>
+    <div id="live-log" class="log-box">📡 Waiting for logs...</div>
+  </section>
+</main>
 
-    <!-- QUICK ACTIONS -->
-    <section class="panel">
-      <div class="panel-head">
-        <div class="panel-title"><div class="panel-ico amber">⚡</div> Quick Actions</div>
-        <span class="pill green"><span class="dot"></span> Live</span>
-      </div>
-      <div class="action-grid">
-        <button class="btn action-tile stop" id="btn-stop-all" onclick="doStopAll()" style="display:{'none' if stopped_now else 'inline-flex'};">
-          <span class="t-ico">🛑</span>
-          <span class="t-txt"><span class="t-main">Stop All Bots</span><span class="t-sub">Disconnect every bot</span></span>
-        </button>
-        <button class="btn action-tile start" id="btn-start-all" onclick="doStartAll()" style="display:{'inline-flex' if stopped_now else 'none'};">
-          <span class="t-ico">🚀</span>
-          <span class="t-txt"><span class="t-main">Start All Bots</span><span class="t-sub">Resume every account</span></span>
-        </button>
-        <button class="btn action-tile amber" onclick="doAccountRestart()">
-          <span class="t-ico">♻️</span>
-          <span class="t-txt"><span class="t-main">Account Restart</span><span class="t-sub">Reconnect all bots</span></span>
-        </button>
-        <button class="btn action-tile pink" onclick="doSquadRecreate()">
-          <span class="t-ico">🔄</span>
-          <span class="t-txt"><span class="t-main">Squad Recreate</span><span class="t-sub">Rebuild every squad</span></span>
-        </button>
-      </div>
-    </section>
-
-    <!-- ACCOUNT MANAGER -->
-    <section class="panel section" id="section-accounts">
-      <div class="panel-head">
-        <div class="panel-title"><div class="panel-ico">👥</div> Account Manager</div>
-        <span class="pill"><span class="dot"></span> <span id="acc-count">0</span> Accounts</span>
-      </div>
-      <div class="stack">
-        <div class="acc-box cyan">
-          <div class="box-title cyan">➕ Add Single Account</div>
-          <div class="row">
-            <div class="field"><label class="field-label">UID</label><input type="text" id="new-uid" placeholder="e.g. 1234567890"></div>
-            <div class="field"><label class="field-label">Password</label><input type="text" id="new-pwd" placeholder="Account Password"></div>
-            <button class="btn green" onclick="addSingleAccount()">➕ Add</button>
-          </div>
-        </div>
-        <div class="acc-box pink">
-          <div class="box-title pink">📂 Upload TXT (Bulk)</div>
-          <div class="hint">Format: প্রতি লাইনে <b>uid:password</b> অথবা <b>uid|password</b></div>
-          <div class="row" style="grid-template-columns:1fr auto; margin-top:10px;">
-            <input type="file" id="acc-file" accept=".txt">
-            <button class="btn pink" onclick="uploadAccFile()">📤 Upload & Replace</button>
-          </div>
-        </div>
-        <div class="acc-box violet">
-          <div class="box-title violet">✏️ Edit / View All Accounts</div>
-          <textarea id="acc-content" style="height:240px; color:#4ADE80; background:#02040A;" spellcheck="false"></textarea>
-          <div class="hint">Format: <b>uid:password</b> প্রতি লাইনে · <code>#</code> দিয়ে comment</div>
-          <div class="btn-row">
-            <button class="btn green" onclick="saveAllAccounts()" id="acc-save-btn">💾 Save All</button>
-            <button class="btn amber" onclick="reloadAccounts()">🔄 Reload</button>
-            <button class="btn blue" onclick="downloadAccounts()">📥 Download TXT</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SQUAD CONFIG -->
-    <section class="panel section" id="section-config">
-      <div class="panel-head">
-        <div class="panel-title"><div class="panel-ico green">⚙️</div> Squad Configuration</div>
-        <span class="pill violet"><span class="dot"></span> Auto Save</span>
-      </div>
-      <form id="squad-form" onsubmit="saveSquadConfig(event)">
-        <div class="stack">
-          <div class="field">
-            <label class="field-label">👥 Squad Size</label>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="squad_size" value="3" {'checked' if cur_size==3 else ''}><span>4 Players</span></label>
-              <label class="chip"><input type="radio" name="squad_size" value="4" {'checked' if cur_size==4 else ''}><span>5 Players</span></label>
-              <label class="chip"><input type="radio" name="squad_size" value="5" {'checked' if cur_size==5 else ''}><span>6 Players</span></label>
-            </div>
-          </div>
-          <div class="field">
-            <label class="field-label">📢 World Recruit Type</label>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="world_recruit_type" value="1" {'checked' if cur_recruit_type=="1" else ''}><span>Type 1</span></label>
-              <label class="chip"><input type="radio" name="world_recruit_type" value="2" {'checked' if cur_recruit_type=="2" else ''}><span>Type 2</span></label>
-              <label class="chip"><input type="radio" name="world_recruit_type" value="half" {'checked' if cur_recruit_type=="half" else ''}><span>Half</span></label>
-              <label class="chip"><input type="radio" name="world_recruit_type" value="random" {'checked' if cur_recruit_type=="random" else ''}><span>Random</span></label>
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="field"><label class="field-label">📢 Recruit Count</label><input type="number" min="1" max="10" id="world_recruit_count" value="{cur_recruit}"></div>
-            <div class="field"><label class="field-label">⏱️ Squad Lifetime (sec)</label><input type="number" min="5" max="3600" id="squad_lifetime_sec" value="{cur_lifetime}"></div>
-          </div>
-          <div class="grid-2">
-            <div class="field"><label class="field-label">✨ Animation Interval (sec)</label><input type="number" min="5" max="300" id="animation_interval_sec" value="{cur_anim_int}"></div>
-            <div class="field"><label class="field-label">👗 Bundle Count</label><input type="number" min="1" max="5" id="bundle_count_on_join" value="{rc_bundle_count}"></div>
-          </div>
-          <div class="grid-2">
-            <div class="field"><label class="field-label">⏱️ Recruit Delay (sec)</label><input type="number" min="0.5" max="30" step="0.5" id="recruit_delay_sec" value="{rc_delay}"></div>
-            <div class="field"><label class="field-label">🎭 Emote Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="emote_join_delay_sec" value="{cur_emote_delay}"></div>
-          </div>
-          <div class="grid-2">
-            <div class="field"><label class="field-label">💬 Welcome Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="welcome_delay_sec" value="{cur_welcome_delay}"></div>
-            <div class="field"><label class="field-label">🚫 Kick Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="kick_delay_sec" value="{cur_kick_delay}"></div>
-          </div>
-          <div class="field"><label class="field-label">🚫 Kick Message</label><input type="text" id="kick_msg" value="{kick_msg_esc}"></div>
-          <div class="field">
-            <label class="field-label">🔧 Feature Toggles</label>
-            <div class="chips">
-              <label class="chip"><input type="checkbox" id="auto_recreate_chk" {'checked' if cur_auto else ''}><span>🔁 Auto Recreate</span></label>
-              <label class="chip"><input type="checkbox" id="auto_recruit_on_join_chk" {'checked' if rc_join else ''}><span>🟢 Recruit on Join</span></label>
-              <label class="chip"><input type="checkbox" id="auto_recruit_on_leave_chk" {'checked' if rc_leave else ''}><span>🔴 Recruit on Leave</span></label>
-              <label class="chip"><input type="checkbox" id="auto_bundle_on_join_chk" {'checked' if rc_bundle else ''}><span>👗 Bundle on Join</span></label>
-              <label class="chip"><input type="checkbox" id="auto_emote_on_join_chk" {'checked' if cur_emote_join else ''}><span>🎭 Emote on Join</span></label>
-              <label class="chip"><input type="checkbox" id="auto_animation_chk" {'checked' if cur_anim else ''}><span>✨ Auto Animation</span></label>
-              <label class="chip"><input type="checkbox" id="auto_welcome_on_join_chk" {'checked' if cur_welcome_join else ''}><span>💬 Welcome on Join</span></label>
-              <label class="chip"><input type="checkbox" id="auto_kick_on_join_chk" {'checked' if cur_kick_join else ''}><span>🚫 Auto Kick on Join</span></label>
-            </div>
-          </div>
-          <div class="field">
-            <label class="field-label">💬 Welcome Message</label>
-            <textarea id="welcome_msg_ta" style="height:170px; color:#F59E0B;" spellcheck="false">{welcome_esc}</textarea>
-            <div class="hint">Placeholder: <b>{{user_name}}</b></div>
-          </div>
-          <button type="submit" class="btn green" id="squad-save-btn" style="padding:15px; width:100%;">💾 Save Squad Config</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- EMOTE MANAGER -->
-    <section class="panel section" id="section-emotes">
-      <div class="panel-head">
-        <div class="panel-title"><div class="panel-ico pink">🎭</div> Emote Manager</div>
-        <span class="pill amber"><span class="dot"></span> Web Editable</span>
-      </div>
-      <div class="stack">
-        <div class="acc-box cyan">
-          <div class="box-title cyan">🎭 Join Emote Pool</div>
-          <div class="hint">Member join হলে এই emote গুলোর যেকোনো একটি random ভাবে পাঠাবে। Comma দিয়ে separate করুন।</div>
-          <textarea id="join_emote_pool" style="height:80px; color:#22D3EE; margin-top:10px;" spellcheck="false" placeholder="909049013,909045010,909000020">{join_emote_csv}</textarea>
-          <div class="hint">উদাহরণ: <code>909049013, 909045010, 909000020</code></div>
-        </div>
-        <div class="acc-box green">
-          <div class="box-title green">🤖 Bot Self-Emote</div>
-          <div class="hint">Bot নিজের উপর period ভিত্তিক emote পাঠাবে। Nice for activity।</div>
-          <div class="chips" style="margin-top:10px;">
-            <label class="chip"><input type="checkbox" id="bot_self_emote_enabled" {'checked' if cur_self_emote else ''}><span>🤖 Enable Self-Emote</span></label>
-          </div>
-          <div class="field" style="margin-top:12px;">
-            <label class="field-label">⏱️ Self-Emote Interval (sec)</label>
-            <input type="number" min="1" max="300" step="0.5" id="bot_self_emote_interval" value="{cur_self_emote_int}">
-          </div>
-          <div class="field" style="margin-top:12px;">
-            <label class="field-label">🎭 Self-Emote Pool</label>
-            <textarea id="bot_self_emote_pool" style="height:80px; color:#10B981;" spellcheck="false" placeholder="909049013,909045010">{self_emote_csv}</textarea>
-            <div class="hint">Comma দিয়ে separate করুন। <b>Interval</b> পরে random একটি পাঠাবে।</div>
-          </div>
-        </div>
-        <button type="button" class="btn pink" onclick="saveEmotePool()" id="emote-save-btn" style="padding:15px; width:100%;">💾 Save Emote Pool</button>
-      </div>
-    </section>
-
-    <!-- ACTIVE BOTS -->
-    <section class="panel section" id="section-bots">
-      <div class="panel-head">
-        <div class="panel-title"><div class="panel-ico">📋</div> Active Bots</div>
-        <span class="pill green"><span class="dot"></span> Live</span>
-      </div>
-      <div class="table-shell">
-        <table>
-          <thead><tr>
-            <th>Bot UID</th><th>UID</th><th>Name</th><th>Region</th>
-            <th>Squad ID</th><th>Members</th><th>Time</th><th>Status</th>
-          </tr></thead>
-          <tbody id="accounts-tbody">
-            <tr class="empty-row"><td colspan="8">🔄 Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- LIVE LOG -->
-    <section class="panel section" id="section-logs">
-      <div class="panel-head">
-        <div class="panel-title"><div class="panel-ico red">📜</div> Live Log</div>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <button class="btn ghost" onclick="clearLogView()" style="padding:8px 16px; font-size:0.8em;">🗑️ Clear</button>
-          <span class="pill green"><span class="dot"></span> Auto-Sync</span>
-        </div>
-      </div>
-      <div id="live-log" class="log-shell">📡 Waiting for logs...</div>
-    </section>
-
-    <footer class="foot">© 2026 <b>MAHIR SQUAD BOT</b> · Premium Cyberpunk Edition</footer>
-  </main>
-</div>
 <div class="toast" id="toast"></div>
 
 <script>
 let CURRENT_STOPPED = {str(stopped_now).lower()};
 
-function toggleSidebar() {{
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('show');
-}}
-function navTo(el) {{
-  document.querySelectorAll('.sb-link').forEach(a => a.classList.remove('active'));
-  el.classList.add('active');
-  if (window.innerWidth <= 900) toggleSidebar();
-}}
 function showToast(msg, color) {{
   const t = document.getElementById('toast');
   t.innerText = msg;
-  if (color) t.style.background = `linear-gradient(135deg, ${{color}}, ${{color}}cc)`;
-  else t.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+  t.style.borderColor = color || 'var(--accent-green)';
+  t.style.color = color || 'var(--accent-green)';
   t.classList.add('show');
   clearTimeout(window._tt);
   window._tt = setTimeout(() => t.classList.remove('show'), 3500);
 }}
+
 async function doStopAll() {{
   if (!confirm('🛑 Stop ALL BOTS?')) return;
-  const b = document.getElementById('btn-stop-all');
-  b.disabled = true;
   try {{
     const r = await fetch('/stop_all_bots', {{method:'POST'}});
-    if (r.ok) {{ showToast('🛑 All Bots Stopped!', '#EF4444'); await refreshStatus(); }}
-    else showToast('❌ Failed', '#EF4444');
-  }} catch(e) {{ showToast('❌ Network Error', '#EF4444'); }}
-  b.disabled = false;
+    if (r.ok) {{ showToast('🛑 All Bots Stopped!', 'var(--accent-red)'); await refreshStatus(); }}
+  }} catch(e) {{ showToast('❌ Network Error', 'var(--accent-red)'); }}
 }}
 async function doStartAll() {{
   if (!confirm('🚀 Start ALL BOTS?')) return;
-  const b = document.getElementById('btn-start-all');
-  b.disabled = true;
   try {{
     const r = await fetch('/start_all_bots', {{method:'POST'}});
-    if (r.ok) {{ showToast('🚀 All Bots Starting!', '#10B981'); await refreshStatus(); }}
-    else showToast('❌ Failed', '#EF4444');
-  }} catch(e) {{ showToast('❌ Network Error', '#EF4444'); }}
-  b.disabled = false;
+    if (r.ok) {{ showToast('🚀 All Bots Starting!', 'var(--accent-green)'); await refreshStatus(); }}
+  }} catch(e) {{ showToast('❌ Network Error', 'var(--accent-red)'); }}
 }}
 async function refreshStatus() {{
   try {{
@@ -2365,68 +2250,66 @@ async function refreshStatus() {{
   }} catch(e) {{}}
 }}
 function updateStatusUI() {{
-  const banner = document.getElementById('status-banner');
-  const sb = document.getElementById('btn-stop-all');
-  const stb = document.getElementById('btn-start-all');
+  const ind = document.getElementById('status-indicator');
+  const sb = document.getElementById('btn-stop');
+  const stb = document.getElementById('btn-start');
   if (CURRENT_STOPPED) {{
-    banner.innerText = '🛑 BOTS STOPPED';
-    banner.style.background = 'linear-gradient(135deg,#EF4444,#7F1D1D)';
-    sb.style.display = 'none';
-    stb.style.display = 'inline-flex';
+    ind.innerHTML = '<span class="dot"></span> STOPPED'; ind.classList.add('stopped');
+    sb.style.display = 'none'; stb.style.display = 'inline-flex';
   }} else {{
-    banner.innerText = '🟢 BOTS RUNNING';
-    banner.style.background = 'linear-gradient(135deg,#10B981,#065F46)';
-    sb.style.display = 'inline-flex';
-    stb.style.display = 'none';
+    ind.innerHTML = '<span class="dot"></span> ONLINE'; ind.classList.remove('stopped');
+    sb.style.display = 'inline-flex'; stb.style.display = 'none';
   }}
 }}
 async function doAccountRestart() {{
   if (!confirm('♻️ Restart ALL accounts?')) return;
   try {{
     const r = await fetch('/restart_accounts', {{method:'POST'}});
-    if (r.ok) showToast('♻️ Account Restart Triggered!', '#F59E0B');
-  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
+    if (r.ok) showToast('♻️ Account Restart Triggered!', 'var(--accent-blue)');
+  }} catch(e) {{ showToast('❌ Error', 'var(--accent-red)'); }}
 }}
 async function doSquadRecreate() {{
   if (!confirm('🔄 Recreate ALL squads?')) return;
   try {{
     const r = await fetch('/recreate_squads', {{method:'POST'}});
-    if (r.ok) showToast('🔄 Squad Recreate Triggered!', '#EC4899');
-  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
+    if (r.ok) showToast('🔄 Squad Recreate Triggered!', 'var(--accent-purple)');
+  }} catch(e) {{ showToast('❌ Error', 'var(--accent-red)'); }}
 }}
 async function saveSquadConfig(e) {{
   e.preventDefault();
   const btn = document.getElementById('squad-save-btn');
   btn.disabled = true; btn.innerText = '⏳ Saving...';
   const form = document.getElementById('squad-form');
-  const size = form.querySelector('input[name="squad_size"]:checked').value;
-  const rtype = form.querySelector('input[name="world_recruit_type"]:checked').value;
   const body = new URLSearchParams();
-  body.append('squad_size', size);
-  body.append('world_recruit_type', rtype);
+  body.append('squad_size', form.querySelector('input[name="squad_size"]:checked').value);
+  body.append('squad_create_mode', form.querySelector('input[name="squad_create_mode"]:checked').value);
+  body.append('world_recruit_type', document.getElementById('world_recruit_type').value);
   body.append('world_recruit_count', document.getElementById('world_recruit_count').value);
   body.append('squad_lifetime_sec', document.getElementById('squad_lifetime_sec').value);
   body.append('animation_interval_sec', document.getElementById('animation_interval_sec').value);
   body.append('bundle_count_on_join', document.getElementById('bundle_count_on_join').value);
-  body.append('recruit_delay_sec', document.getElementById('recruit_delay_sec').value);
+  
+  // New Delays
   body.append('emote_join_delay_sec', document.getElementById('emote_join_delay_sec').value);
+  body.append('bundle_join_delay_sec', document.getElementById('bundle_join_delay_sec').value);
+  body.append('animation_join_delay_sec', document.getElementById('animation_join_delay_sec').value);
   body.append('welcome_delay_sec', document.getElementById('welcome_delay_sec').value);
   body.append('kick_delay_sec', document.getElementById('kick_delay_sec').value);
+  
   body.append('kick_msg', document.getElementById('kick_msg').value);
+  body.append('welcome_msg', document.getElementById('welcome_msg_ta').value);
   body.append('auto_recreate', document.getElementById('auto_recreate_chk').checked ? '1' : '0');
   body.append('auto_recruit_on_join', document.getElementById('auto_recruit_on_join_chk').checked ? '1' : '0');
-  body.append('auto_recruit_on_leave', document.getElementById('auto_recruit_on_leave_chk').checked ? '1' : '0');
   body.append('auto_bundle_on_join', document.getElementById('auto_bundle_on_join_chk').checked ? '1' : '0');
   body.append('auto_emote_on_join', document.getElementById('auto_emote_on_join_chk').checked ? '1' : '0');
   body.append('auto_animation', document.getElementById('auto_animation_chk').checked ? '1' : '0');
   body.append('auto_welcome_on_join', document.getElementById('auto_welcome_on_join_chk').checked ? '1' : '0');
   body.append('auto_kick_on_join', document.getElementById('auto_kick_on_join_chk').checked ? '1' : '0');
-  body.append('welcome_msg', document.getElementById('welcome_msg_ta').value);
   try {{
-    const r = await fetch('/save_squad_config', {{method:'POST', headers:{{'Content-Type':'application/x-www-form-urlencoded'}}, body: body.toString()}});
-    if (r.ok) showToast('⚙️ Squad Config Saved!', '#10B981');
-    else showToast('❌ Save failed', '#EF4444');
-  }} catch(err) {{ showToast('❌ Error', '#EF4444'); }}
+    const r = await fetch('/save_squad_config', {{method:'POST', body: body.toString()}});
+    if (r.ok) showToast('⚙️ Squad Config Saved!', 'var(--accent-green)');
+    else showToast('❌ Save failed', 'var(--accent-red)');
+  }} catch(err) {{ showToast('❌ Error', 'var(--accent-red)'); }}
   btn.disabled = false; btn.innerText = '💾 Save Squad Config';
 }}
 async function saveEmotePool() {{
@@ -2438,11 +2321,11 @@ async function saveEmotePool() {{
   body.append('bot_self_emote_enabled', document.getElementById('bot_self_emote_enabled').checked ? '1' : '0');
   body.append('bot_self_emote_interval', document.getElementById('bot_self_emote_interval').value);
   try {{
-    const r = await fetch('/save_emote_pool', {{method:'POST', headers:{{'Content-Type':'application/x-www-form-urlencoded'}}, body: body.toString()}});
-    if (r.ok) showToast('🎭 Emote Pool Saved!', '#EC4899');
-    else showToast('❌ Save failed', '#EF4444');
-  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
-  btn.disabled = false; btn.innerText = '💾 Save Emote Pool';
+    const r = await fetch('/save_emote_pool', {{method:'POST', body: body.toString()}});
+    if (r.ok) showToast('🎭 Emote Settings Saved!', 'var(--accent-pink)');
+    else showToast('❌ Save failed', 'var(--accent-red)');
+  }} catch(e) {{ showToast('❌ Error', 'var(--accent-red)'); }}
+  btn.disabled = false; btn.innerText = '💾 Save Emote Settings';
 }}
 async function loadAccountsList() {{
   try {{
@@ -2456,68 +2339,45 @@ async function loadAccountsList() {{
 async function addSingleAccount() {{
   const uid = document.getElementById('new-uid').value.trim();
   const pwd = document.getElementById('new-pwd').value.trim();
-  if (!uid || !pwd) {{ showToast('❌ UID / Password দিন', '#EF4444'); return; }}
-  if (!/^[0-9]+$/.test(uid)) {{ showToast('❌ UID শুধু number', '#EF4444'); return; }}
+  if (!uid || !pwd) {{ showToast('❌ UID / Password required', 'var(--accent-red)'); return; }}
   try {{
-    const body = new URLSearchParams();
-    body.append('uid', uid); body.append('password', pwd);
+    const body = new URLSearchParams(); body.append('uid', uid); body.append('password', pwd);
     const r = await fetch('/add_account', {{method:'POST', body: body.toString()}});
     if (r.ok) {{
-      showToast('✅ Account যোগ হয়েছে!', '#10B981');
+      showToast('✅ Account Added!', 'var(--accent-green)');
       document.getElementById('new-uid').value = '';
       document.getElementById('new-pwd').value = '';
       await loadAccountsList();
-    }} else showToast('❌ Failed', '#EF4444');
-  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
+    }}
+  }} catch(e) {{ showToast('❌ Error', 'var(--accent-red)'); }}
 }}
 async function saveAllAccounts() {{
-  const content = document.getElementById('acc-content').value;
   const btn = document.getElementById('acc-save-btn');
-  btn.disabled = true; btn.innerText = '⏳ Saving...';
+  btn.disabled = true; btn.innerText = '⏳...';
   try {{
-    const body = new URLSearchParams();
-    body.append('content', content);
+    const body = new URLSearchParams(); body.append('content', document.getElementById('acc-content').value);
     const r = await fetch('/save_accounts', {{method:'POST', body: body.toString()}});
     if (r.ok) {{
-      const res = await r.text();
-      showToast('💾 ' + res, '#10B981');
+      showToast('💾 Accounts Saved!', 'var(--accent-green)');
       await loadAccountsList();
-    }} else showToast('❌ Save failed', '#EF4444');
-  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
+    }}
+  }} catch(e) {{ showToast('❌ Error', 'var(--accent-red)'); }}
   btn.disabled = false; btn.innerText = '💾 Save All';
 }}
-async function reloadAccounts() {{
-  await loadAccountsList();
-  showToast('🔄 Reloaded', '#3B82F6');
-}}
+async function reloadAccounts() {{ await loadAccountsList(); showToast('🔄 Reloaded', 'var(--accent-blue)'); }}
 function downloadAccounts() {{
-  const content = document.getElementById('acc-content').value;
-  const blob = new Blob([content], {{type: 'text/plain'}});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'accounts.txt';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  showToast('📥 Downloaded!', '#22D3EE');
+  const blob = new Blob([document.getElementById('acc-content').value], {{type: 'text/plain'}});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'accounts.txt'; a.click();
+  showToast('📥 Downloaded!', 'var(--accent-cyan)');
 }}
 async function uploadAccFile() {{
   const fi = document.getElementById('acc-file');
-  if (!fi.files || !fi.files[0]) {{ showToast('❌ File select করুন', '#EF4444'); return; }}
+  if (!fi.files || !fi.files[0]) return;
   const reader = new FileReader();
   reader.onload = async (e) => {{
-    const content = e.target.result;
-    document.getElementById('acc-content').value = content;
-    try {{
-      const body = new URLSearchParams();
-      body.append('content', content);
-      const r = await fetch('/save_accounts', {{method:'POST', body: body.toString()}});
-      if (r.ok) {{
-        const res = await r.text();
-        showToast('📤 Uploaded — ' + res, '#EC4899');
-        await loadAccountsList();
-        fi.value = '';
-      }} else showToast('❌ Upload failed', '#EF4444');
-    }} catch(err) {{ showToast('❌ Error', '#EF4444'); }}
+    document.getElementById('acc-content').value = e.target.result;
+    await saveAllAccounts();
+    fi.value = '';
   }};
   reader.readAsText(fi.files[0]);
 }}
@@ -2529,21 +2389,19 @@ async function fetchStats() {{
     document.getElementById('stat-online').innerText = d.online;
     document.getElementById('stat-total').innerText = d.total;
     document.getElementById('stat-threads').innerText = d.threads;
-    document.getElementById('stat-version').innerText = d.version;
     const tb = document.getElementById('accounts-tbody');
     if (d.accounts && d.accounts.length) {{
       tb.innerHTML = d.accounts.map(a => `<tr>
-        <td style="font-family:'JetBrains Mono',monospace; color:var(--txt-2);">${{a.bot_uid}}</td>
-        <td style="font-family:'JetBrains Mono',monospace; color:var(--txt-2);">${{a.uid}}</td>
-        <td style="color:var(--cyan); font-weight:700;">${{a.name}}</td>
-        <td><span style="color:var(--amber); font-weight:700;">${{a.region}}</span></td>
-        <td style="color:#FACC15; font-family:'JetBrains Mono',monospace; font-weight:600;">${{a.squad_id||'Pending...'}}</td>
-        <td style="color:#C084FC; font-weight:700;">${{a.squad_members||'0/0'}}</td>
-        <td style="color:var(--txt-3); font-family:'JetBrains Mono',monospace;">${{a.time}}</td>
-        <td><span class="badge-live">ONLINE</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;">${{a.bot_uid}}</td>
+        <td style="font-family:'JetBrains Mono',monospace;">${{a.uid}}</td>
+        <td style="font-weight:600; color:var(--accent-cyan);">${{a.name}}</td>
+        <td style="color:var(--accent-yellow);">${{a.region}}</td>
+        <td style="font-family:'JetBrains Mono',monospace; color:var(--accent-pink);">${{a.squad_id||'Pending...'}}</td>
+        <td>${{a.squad_members||'0/0'}}</td>
+        <td><span style="color:var(--accent-green); font-size:0.75rem; font-weight:700;">ONLINE</span></td>
       </tr>`).join('');
     }} else {{
-      tb.innerHTML = '<tr class="empty-row"><td colspan="8">⚠️ No active bots</td></tr>';
+      tb.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No active bots</td></tr>';
     }}
   }} catch(e) {{}}
 }}
@@ -2554,15 +2412,11 @@ async function fetchLogs() {{
     const d = await r.json();
     const el = document.getElementById('live-log');
     const logs = d.logs || [];
-    if (!logs.length) {{ el.innerHTML = '📡 Waiting for logs...'; return; }}
+    if (!logs.length) return;
     const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
     el.innerHTML = logs.map(l => `<div>${{l.replace(/&/g,'&amp;').replace(/</g,'&lt;')}}</div>`).join('');
     if (atBottom) el.scrollTop = el.scrollHeight;
   }} catch(e) {{}}
-}}
-function clearLogView() {{
-  document.getElementById('live-log').innerHTML = '📡 Cleared.';
-  showToast('🗑️ Log cleared', '#F59E0B');
 }}
 
 loadAccountsList(); setInterval(loadAccountsList, 15000);
@@ -2608,24 +2462,16 @@ refreshStatus();    setInterval(refreshStatus, 3000);
         raw = self._read_body()
 
         if self.path == '/restart_accounts':
-            trigger_restart_all()
-            console.print("[yellow]♻️ Account restart triggered[/yellow]")
-            self._text_response('OK'); return
+            trigger_restart_all(); console.print("[yellow]♻️ Account restart triggered[/yellow]"); self._text_response('OK'); return
 
         if self.path == '/recreate_squads':
-            trigger_recreate_all()
-            console.print("[yellow]🔄 Squad recreate triggered[/yellow]")
-            self._text_response('OK'); return
+            trigger_recreate_all(); console.print("[yellow]🔄 Squad recreate triggered[/yellow]"); self._text_response('OK'); return
 
         if self.path == '/stop_all_bots':
-            set_stop_all(True)
-            console.print("[red]🛑 STOP ALL BOTS TRIGGERED[/red]")
-            self._text_response('OK'); return
+            set_stop_all(True); console.print("[red]🛑 STOP ALL BOTS TRIGGERED[/red]"); self._text_response('OK'); return
 
         if self.path == '/start_all_bots':
-            set_stop_all(False)
-            console.print("[green]🚀 START ALL BOTS TRIGGERED[/green]")
-            self._text_response('OK'); return
+            set_stop_all(False); console.print("[green]🚀 START ALL BOTS TRIGGERED[/green]"); self._text_response('OK'); return
 
         if self.path == '/save_accounts':
             params = parse_qs(raw)
@@ -2635,22 +2481,19 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                 cnt = len(load_accounts())
                 console.print(f"[green]💾 Accounts saved ({cnt})[/green]")
                 self._text_response(f'OK:{cnt}')
-            except Exception as e:
-                self._text_response(f'Error: {e}', 500)
+            except Exception as e: self._text_response(f'Error: {e}', 500)
             return
 
         if self.path == '/add_account':
             params = parse_qs(raw)
             uid = params.get('uid', [''])[0].strip()
             pwd = params.get('password', [''])[0].strip()
-            if not uid.isdigit() or not pwd:
-                self._text_response('Invalid', 400); return
+            if not uid.isdigit() or not pwd: self._text_response('Invalid', 400); return
             try:
                 accs = load_accounts(); accs[uid] = pwd; save_accounts(accs)
                 console.print(f"[green]➕ Account added: {uid}[/green]")
                 self._text_response('OK')
-            except Exception as e:
-                self._text_response(f'Error: {e}', 500)
+            except Exception as e: self._text_response(f'Error: {e}', 500)
             return
 
         if self.path == '/save_squad_config':
@@ -2658,6 +2501,10 @@ refreshStatus();    setInterval(refreshStatus, 3000);
             try:
                 size = int(params.get('squad_size', ['4'])[0])
                 if size not in (3, 4, 5): size = 4
+                
+                scm = params.get('squad_create_mode', ['1'])[0]
+                if scm not in ('1', '2', '3', '4', 'random'): scm = '1'
+                
                 rc = int(params.get('world_recruit_count', ['3'])[0])
                 if rc < 1 or rc > 10: rc = 3
                 wrt = params.get('world_recruit_type', ['1'])[0]
@@ -2666,7 +2513,6 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                 if lt < 5 or lt > 3600: lt = 5
                 ar  = params.get('auto_recreate', ['0'])[0] == '1'
                 ajo = params.get('auto_recruit_on_join', ['0'])[0] == '1'
-                alv = params.get('auto_recruit_on_leave', ['0'])[0] == '1'
                 abj = params.get('auto_bundle_on_join', ['0'])[0] == '1'
                 aej = params.get('auto_emote_on_join', ['0'])[0] == '1'
                 aan = params.get('auto_animation', ['0'])[0] == '1'
@@ -2676,24 +2522,32 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                 if bcj < 1 or bcj > 5: bcj = 2
                 ais = int(params.get('animation_interval_sec', ['10'])[0])
                 if ais < 5 or ais > 300: ais = 10
+                
+                # Delays
                 rds = float(params.get('recruit_delay_sec', ['1.5'])[0] or 1.5)
                 if rds < 0.5 or rds > 30: rds = 1.5
                 ejd = float(params.get('emote_join_delay_sec', ['0.5'])[0] or 0.5)
                 if ejd < 0.1 or ejd > 30: ejd = 0.5
-                wds = float(params.get('welcome_delay_sec', ['0.5'])[0] or 0.5)
-                if wds < 0.1 or wds > 30: wds = 0.5
-                kds = float(params.get('kick_delay_sec', ['1.0'])[0] or 1.0)
-                if kds < 0.1 or kds > 30: kds = 1.0
+                bjd = float(params.get('bundle_join_delay_sec', ['1.0'])[0] or 1.0)
+                if bjd < 0.1 or bjd > 30: bjd = 1.0
+                ajd = float(params.get('animation_join_delay_sec', ['1.5'])[0] or 1.5)
+                if ajd < 0.1 or ajd > 30: ajd = 1.5
+                wds = float(params.get('welcome_delay_sec', ['2.0'])[0] or 2.0)
+                if wds < 0.1 or wds > 30: wds = 2.0
+                kds = float(params.get('kick_delay_sec', ['3.0'])[0] or 3.0)
+                if kds < 0.1 or kds > 30: kds = 3.0
+                
                 km = params.get('kick_msg', [''])[0] or "[B][C][FF0000]🚫 Auto-Kicked!"
                 wm = params.get('welcome_msg', [''])[0] or DEFAULT_WELCOME_MSG
+                
                 with web_config_lock:
                     web_config['squad_size'] = size
+                    web_config['squad_create_mode'] = scm
                     web_config['world_recruit_count'] = rc
                     web_config['world_recruit_type'] = wrt
                     web_config['squad_lifetime_sec'] = lt
                     web_config['auto_recreate'] = ar
                     web_config['auto_recruit_on_join'] = ajo
-                    web_config['auto_recruit_on_leave'] = alv
                     web_config['auto_bundle_on_join'] = abj
                     web_config['auto_emote_on_join'] = aej
                     web_config['auto_animation'] = aan
@@ -2703,15 +2557,18 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                     web_config['welcome_msg'] = wm
                     web_config['auto_welcome_on_join'] = awj
                     web_config['auto_kick_on_join'] = ako
+                    
                     web_config['emote_join_delay_sec'] = ejd
+                    web_config['bundle_join_delay_sec'] = bjd
+                    web_config['animation_join_delay_sec'] = ajd
                     web_config['welcome_delay_sec'] = wds
                     web_config['kick_delay_sec'] = kds
+                    
                     web_config['kick_msg'] = km
                 save_web_config()
-                console.print(f"[green]⚙️ Config Updated[/green]")
+                console.print(f"[green]⚙️ Config Updated (CHSQ Mode: {scm})[/green]")
                 self._text_response('OK')
-            except Exception as e:
-                self._text_response(f"Error: {e}", 400)
+            except Exception as e: self._text_response(f"Error: {e}", 400)
             return
 
         if self.path == '/save_emote_pool':
@@ -2729,8 +2586,7 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                         part = part.strip()
                         if part.isdigit():
                             v = int(part)
-                            if 100000000 <= v <= 999999999:
-                                ids.append(v)
+                            if 100000000 <= v <= 999999999: ids.append(v)
                     return ids
 
                 jids = parse_ids(join_raw)
@@ -2745,10 +2601,9 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                     web_config['bot_self_emote_interval'] = bsi
 
                 save_web_config()
-                console.print(f"[green]🎭 Emote Pool Updated (Join={len(jids)}, Self={len(sids)}, SelfOn={bse})[/green]")
+                console.print(f"[green]🎭 Emote Pool Updated[/green]")
                 self._text_response('OK')
-            except Exception as e:
-                self._text_response(f'Error: {e}', 400)
+            except Exception as e: self._text_response(f'Error: {e}', 400)
             return
 
         self.send_response(404); self.end_headers()
@@ -2779,7 +2634,7 @@ async def main_async():
         "[bold green]✅ Squad System Active[/bold green]\n"
         "[cyan]🌐 http://localhost:8080[/cyan]\n"
         f"[white]📦 {CURRENT_OB} | {FREEFIRE_VERSION_NAME}[/white]\n"
-        "[magenta]👥 Squad: OpEnSq + cHSq22[/magenta]\n"
+        "[magenta]👥 CHSQ Modes 1-4 & Random Available[/magenta]\n"
         "[yellow]📢 Recruit: Type 1 / 2 / Half / Random[/yellow]\n"
         "[blue]💬 Team Chat: ENABLED ✅[/blue]\n"
         "[bold magenta]👗 Auto Bundle · 🎭 Join Emote · ✨ Animation[/bold magenta]\n"
@@ -2787,8 +2642,8 @@ async def main_async():
         "[bold red]🛑 STOP ALL BOTS: Web One-Click ✅[/bold red]\n"
         "[bold cyan]🎭 Web-Editable Join Emote Pool ✅[/bold cyan]\n"
         "[bold violet]🤖 Bot Self-Emote Toggle ✅[/bold violet]\n"
-        "[bold yellow]⚠️ NO FALLBACK — Pure API Data[/bold yellow]",
-        title="[bold red]🔥 MAHIR SQUAD BOT — CYBERPUNK 🔥[/bold red]",
+        "[bold yellow]⏱️ CUSTOM JOIN DELAYS: Web Controlled ✅[/bold yellow]",
+        title="[bold red]🔥 MAHIR SQUAD BOT — PREMIUM 🔥[/bold red]",
         border_style="bright_red", expand=False))
     while True: await asyncio.sleep(3600)
 
