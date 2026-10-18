@@ -4,9 +4,9 @@
 # ✅ Auto Update · Auto Emote · Auto Animation · Dual Recruit
 # ✅ Web Account Manager · Stop All · Auto Kick
 # ✅ Web-Editable Join Emotes · Bot Self-Emote Toggle
-# ✅ cHSq Variants (1, 2, 3, 4) Control from Web
+# ✅ cHSq Multiple Selection & Random (e.g. "1 3" or "random")
 # ✅ Join Instant Emote & Bundle
-# ✅ Premium Cyberpunk RGB Dashboard (New Design)
+# ✅ Premium Neon Cyberpunk Dashboard
 
 import subprocess, sys, importlib, os, ssl, json, time, random, asyncio, threading, gc, re, struct, base64
 from collections import deque
@@ -285,7 +285,7 @@ web_config = {
     "bot_self_emote_enabled": False,
     "bot_self_emote_pool": DEFAULT_JOIN_EMOTES[:],
     "bot_self_emote_interval": 8.0,
-    "chsq_type": "1", # Default MAHIR_cHSq1
+    "chsq_mode": "1",  # e.g., "1", "1 3", "1,2,4", "random"
     "commands": {},
 }
 web_config_lock = threading.Lock()
@@ -337,8 +337,8 @@ def load_web_config():
             wrt = saved.get("world_recruit_type")
             if wrt in ("1", "2", "half", "random"): web_config["world_recruit_type"] = wrt
 
-            chsq = saved.get("chsq_type")
-            if chsq in ("1", "2", "3", "4"): web_config["chsq_type"] = chsq
+            chsq = saved.get("chsq_mode")
+            if isinstance(chsq, str): web_config["chsq_mode"] = chsq
 
             bool_fields = [
                 "auto_recreate", "auto_recruit_on_join", "auto_recruit_on_leave",
@@ -405,7 +405,7 @@ def save_web_config():
                 "join_emote_pool", "auto_kick_on_join", "kick_delay_sec", "kick_msg",
                 "auto_welcome_on_join", "welcome_delay_sec",
                 "bot_self_emote_enabled", "bot_self_emote_pool", "bot_self_emote_interval",
-                "chsq_type",
+                "chsq_mode",
             ]}
             data["commands"] = to_json_safe(web_config["commands"])
         with open(WEB_CONFIG_FILE, "w", encoding="utf-8") as f:
@@ -1303,7 +1303,8 @@ class SquadBot:
             with web_config_lock:
                 sc = web_config.get("squad_size", 4)
                 rcc = web_config.get("world_recruit_count", 3)
-                chsq_type = web_config.get("chsq_type", "1")
+                chsq_mode = web_config.get("chsq_mode", "1").strip()
+            
             op = await MAHIR_OPenSq(self.key, self.iv, self.region, FREEFIRE_VERSION_NAME)
             if not op or not self.online_writer: return False
             self.online_writer.write(op); await self.online_writer.drain()
@@ -1314,23 +1315,38 @@ class SquadBot:
                 self.online_writer.write(op2); await self.online_writer.drain()
                 await asyncio.sleep(0.3)
             except: pass
+            
             try:
-                # ⭐ SELECT CHSQ TYPE FROM WEB CONFIG
-                if chsq_type == "1":
+                # ⭐ cHSq Mode Parser: "1", "1 3", "random" etc.
+                chsq_choices = []
+                if chsq_mode.lower() == "random":
+                    chsq_choices = ["1", "2", "3", "4"]
+                else:
+                    # Extract digits
+                    chsq_choices = re.findall(r'[1-4]', chsq_mode)
+                
+                if not chsq_choices:
+                    chsq_choices = ["1"]
+
+                selected_chsq = random.choice(chsq_choices)
+                
+                if selected_chsq == "1":
                     sp = await MAHIR_cHSq1(sc, self.bot_uid, self.key, self.iv, self.region)
-                elif chsq_type == "2":
+                elif selected_chsq == "2":
                     sp = await MAHIR_cHSq2(sc, self.bot_uid, self.key, self.iv, self.region)
-                elif chsq_type == "3":
+                elif selected_chsq == "3":
                     sp = await MAHIR_cHSq3(sc, self.bot_uid, self.key, self.iv, self.region)
-                elif chsq_type == "4":
+                elif selected_chsq == "4":
                     sp = await MAHIR_cHSq4(sc, self.bot_uid, self.key, self.iv, self.region)
                 else:
                     sp = await MAHIR_cHSq1(sc, self.bot_uid, self.key, self.iv, self.region)
                 
                 self.online_writer.write(sp); await self.online_writer.drain()
                 await asyncio.sleep(0.3)
+                console.print(f"[magenta]🛠️ [{self.uid}] Used cHSq Mode: {selected_chsq}[/magenta]")
             except Exception as e:
                 console.print(f"[red]CHSQ Error: {e}[/red]")
+                
             await self._send_world_recruit(reason="initial", count=rcc)
             self.squad_created = True
             self.squad_created_at = time.time()
@@ -1675,7 +1691,7 @@ class SquadBot:
                 return
 
 # ================================================================
-#   WEB SERVER — PREMIUM CYBERPUNK DASHBOARD (NEW DESIGN)
+#   WEB SERVER — PREMIUM NEON CYBERPUNK DASHBOARD (NEW DESIGN)
 # ================================================================
 class BotHandler(BaseHTTPRequestHandler):
     def _json_response(self, data, status=200):
@@ -1710,7 +1726,7 @@ class BotHandler(BaseHTTPRequestHandler):
                 cur_size = web_config.get("squad_size", 4)
                 cur_recruit = web_config.get("world_recruit_count", 3)
                 cur_recruit_type = web_config.get("world_recruit_type", "1")
-                cur_chsq = web_config.get("chsq_type", "1")
+                cur_chsq = web_config.get("chsq_mode", "1")
                 cur_lifetime = web_config.get("squad_lifetime_sec", 5)
                 cur_auto = web_config.get("auto_recreate", True)
                 rc_welcome = web_config.get("welcome_msg", DEFAULT_WELCOME_MSG)
@@ -2236,11 +2252,13 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
           <div class="field">
             <label class="field-label">🛠️ cHSq Mode (Squad Create)</label>
             <div class="chips">
-              <label class="chip"><input type="radio" name="chsq_type" value="1" {'checked' if cur_chsq=="1" else ''}><span>cHSq 1</span></label>
-              <label class="chip"><input type="radio" name="chsq_type" value="2" {'checked' if cur_chsq=="2" else ''}><span>cHSq 2</span></label>
-              <label class="chip"><input type="radio" name="chsq_type" value="3" {'checked' if cur_chsq=="3" else ''}><span>cHSq 3</span></label>
-              <label class="chip"><input type="radio" name="chsq_type" value="4" {'checked' if cur_chsq=="4" else ''}><span>cHSq 4</span></label>
+              <label class="chip"><input type="checkbox" name="chsq_mode" value="1" {'checked' if '1' in cur_chsq or cur_chsq=='random' else ''}><span>cHSq 1</span></label>
+              <label class="chip"><input type="checkbox" name="chsq_mode" value="2" {'checked' if '2' in cur_chsq or cur_chsq=='random' else ''}><span>cHSq 2</span></label>
+              <label class="chip"><input type="checkbox" name="chsq_mode" value="3" {'checked' if '3' in cur_chsq or cur_chsq=='random' else ''}><span>cHSq 3</span></label>
+              <label class="chip"><input type="checkbox" name="chsq_mode" value="4" {'checked' if '4' in cur_chsq or cur_chsq=='random' else ''}><span>cHSq 4</span></label>
+              <label class="chip" style="border-color:var(--magenta); color:var(--magenta);"><input type="checkbox" name="chsq_mode" value="random" {'checked' if cur_chsq=='random' else ''}><span>Random</span></label>
             </div>
+            <div class="hint">Select multiple (e.g. 1 & 3) or Random. The bot will pick one from the selected modes for each squad creation.</div>
           </div>
           <div class="grid-2">
             <div class="field"><label class="field-label">📢 Recruit Count</label><input type="number" min="1" max="10" id="world_recruit_count" value="{cur_recruit}"></div>
@@ -2440,11 +2458,15 @@ async function saveSquadConfig(e) {{
   const form = document.getElementById('squad-form');
   const size = form.querySelector('input[name="squad_size"]:checked').value;
   const rtype = form.querySelector('input[name="world_recruit_type"]:checked').value;
-  const ctype = form.querySelector('input[name="chsq_type"]:checked').value;
+  
+  const chsqChecks = document.querySelectorAll('input[name="chsq_mode"]:checked');
+  let chsqModes = Array.from(chsqChecks).map(cb => cb.value).join(' ').trim();
+  if (!chsqModes) chsqModes = '1';
+
   const body = new URLSearchParams();
   body.append('squad_size', size);
   body.append('world_recruit_type', rtype);
-  body.append('chsq_type', ctype);
+  body.append('chsq_mode', chsqModes);
   body.append('world_recruit_count', document.getElementById('world_recruit_count').value);
   body.append('squad_lifetime_sec', document.getElementById('squad_lifetime_sec').value);
   body.append('animation_interval_sec', document.getElementById('animation_interval_sec').value);
@@ -2703,8 +2725,8 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                 if rc < 1 or rc > 10: rc = 3
                 wrt = params.get('world_recruit_type', ['1'])[0]
                 if wrt not in ('1', '2', 'half', 'random'): wrt = '1'
-                chsq = params.get('chsq_type', ['1'])[0]
-                if chsq not in ('1', '2', '3', '4'): chsq = '1'
+                chsq = params.get('chsq_mode', ['1'])[0].strip()
+                if not chsq: chsq = '1'
                 lt = int(params.get('squad_lifetime_sec', ['5'])[0])
                 if lt < 5 or lt > 3600: lt = 5
                 ar  = params.get('auto_recreate', ['0'])[0] == '1'
@@ -2733,7 +2755,7 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                     web_config['squad_size'] = size
                     web_config['world_recruit_count'] = rc
                     web_config['world_recruit_type'] = wrt
-                    web_config['chsq_type'] = chsq
+                    web_config['chsq_mode'] = chsq
                     web_config['squad_lifetime_sec'] = lt
                     web_config['auto_recreate'] = ar
                     web_config['auto_recruit_on_join'] = ajo
@@ -2752,7 +2774,7 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                     web_config['kick_delay_sec'] = kds
                     web_config['kick_msg'] = km
                 save_web_config()
-                console.print(f"[green]⚙️ Config Updated[/green]")
+                console.print(f"[green]⚙️ Config Updated (chSq: {chsq})[/green]")
                 self._text_response('OK')
             except Exception as e:
                 self._text_response(f"Error: {e}", 400)
@@ -2823,13 +2845,13 @@ async def main_async():
         "[bold green]✅ Squad System Active[/bold green]\n"
         "[cyan]🌐 http://localhost:8080[/cyan]\n"
         f"[white]📦 {CURRENT_OB} | {FREEFIRE_VERSION_NAME}[/white]\n"
-        "[magenta]👥 Squad: OpEnSq + cHSq1/2/3/4[/magenta]\n"
+        "[magenta]👥 Squad: OpEnSq + cHSq Multi-Selection[/magenta]\n"
         "[yellow]📢 Recruit: Type 1 / 2 / Half / Random[/yellow]\n"
         "[blue]💬 Team Chat: ENABLED ✅[/blue]\n"
         "[bold magenta]👗 Instant Join Emote & Bundle[/bold magenta]\n"
         "[bold green]🎭 Auto Emote Equip ON LOGIN ✅[/bold green]\n"
         "[bold red]🛑 STOP ALL BOTS: Web One-Click ✅[/bold red]\n"
-        "[bold cyan]🛠️ Web Controlled cHSq Variants ✅[/bold cyan]\n"
+        "[bold cyan]🛠️ Web Controlled cHSq Multi-Mode ✅[/bold cyan]\n"
         "[bold violet]🤖 Bot Self-Emote Toggle ✅[/bold violet]\n"
         "[bold yellow]⚠️ NO FALLBACK — Pure API Data[/bold yellow]",
         title="[bold red]🔥 MAHIR SQUAD BOT — CYBERPUNK 🔥[/bold red]",
