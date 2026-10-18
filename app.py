@@ -6,6 +6,7 @@
 # ✅ Web-Editable Join Emotes · Bot Self-Emote Toggle
 # ✅ Premium Cyberpunk RGB Dashboard
 # ✅ Fast Concurrent Login & Join Event Priority Control
+# ✅ Animation + Emote Combo Simultaneously (Animation = Emote)
 
 import subprocess, sys, importlib, os, ssl, json, time, random, asyncio, threading, gc, re, struct, base64
 from collections import deque
@@ -286,7 +287,7 @@ web_config = {
     "bot_self_emote_interval": 8.0,
     
     # ⭐ New Join Priority & Delay Configs
-    "join_action_priority": "animation_first", # animation_first, bundle_first, simultaneous
+    "join_action_priority": "animation_first", # animation_first, bundle_first, simultaneous, anim_emote_combo
     "join_delay_animation": 1.0,
     "join_delay_bundle": 1.0,
     "join_delay_emote": 0.5,
@@ -346,7 +347,7 @@ def load_web_config():
             if wrt in ("1", "2", "half", "random"): web_config["world_recruit_type"] = wrt
 
             jap = saved.get("join_action_priority")
-            if jap in ("animation_first", "bundle_first", "simultaneous"): web_config["join_action_priority"] = jap
+            if jap in ("animation_first", "bundle_first", "simultaneous", "anim_emote_combo"): web_config["join_action_priority"] = jap
 
             bool_fields = [
                 "auto_recreate", "auto_recruit_on_join", "auto_recruit_on_leave",
@@ -997,7 +998,7 @@ async def batch_account_loader():
                     active_bots[uid] = bot
                     bot_tasks[uid] = asyncio.create_task(bot.keep_online_forever())
                     console.print(f"[bold green]✨ UID {uid} → Launched[/bold green]")
-                    await asyncio.sleep(0.01) # ⭐ Faster launching (Reduced from 0.05)
+                    await asyncio.sleep(0.01) # ⭐ Faster launching
             else:
                 for uid in list(bot_tasks.keys()):
                     try:
@@ -1082,7 +1083,7 @@ class SquadBot:
         try:
             with web_config_lock:
                 enabled = web_config.get("auto_emote_on_join", True)
-                delay = float(web_config.get("join_delay_emote", 0.5)) # Updated to use new delay
+                delay = float(web_config.get("join_delay_emote", 0.5))
                 pool = list(web_config.get("join_emote_pool", DEFAULT_JOIN_EMOTES))
             if not enabled or not pool: return False
             if not self.online_writer or not self.bot_uid: return False
@@ -1157,7 +1158,16 @@ class SquadBot:
                 emote_enabled = web_config.get("auto_emote_on_join", True)
 
             # Sequence logic based on priority
-            if priority == "animation_first":
+            if priority == "anim_emote_combo":
+                tasks = []
+                if anim_enabled: tasks.append(self._send_animation_once())
+                if emote_enabled: tasks.append(self._send_emote_on_join(target_uid))
+                if tasks:
+                    await asyncio.gather(*tasks)
+                if bundle_enabled:
+                    await asyncio.sleep(d_bundle)
+                    await self._send_bundle_on_join()
+            elif priority == "animation_first":
                 if anim_enabled: await asyncio.sleep(d_anim); await self._send_animation_once()
                 if bundle_enabled: await asyncio.sleep(d_bundle); await self._send_bundle_on_join()
                 if emote_enabled: await asyncio.sleep(d_emote); await self._send_emote_on_join(target_uid)
@@ -1462,7 +1472,6 @@ class SquadBot:
                                             if us not in self.squad_members:
                                                 sq_id = soi or (int(self.current_squad_id) if self.current_squad_id else None)
                                                 console.print(f"[cyan][{self.uid}][/cyan] [green]➜ Joined:[/green] [yellow]{pn}[/yellow] ({us})")
-                                                # ⭐ Call the new orchestrator instead of separate tasks
                                                 asyncio.create_task(self._handle_join_events(us, pn, sq_id, c_code))
                                             break
                                     if cm:
@@ -2225,9 +2234,10 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
           <div class="field">
             <label class="field-label" style="color:var(--magenta); font-size:0.8em;">🎯 Join Action Priority (কোনটা আগে হবে)</label>
             <div class="chips">
+              <label class="chip"><input type="radio" name="join_action_priority" value="anim_emote_combo" {'checked' if cur_join_priority=="anim_emote_combo" else ''}><span>✨ Animation + 🎭 Emote (Combo)</span></label>
               <label class="chip"><input type="radio" name="join_action_priority" value="animation_first" {'checked' if cur_join_priority=="animation_first" else ''}><span>✨ Animation First</span></label>
               <label class="chip"><input type="radio" name="join_action_priority" value="bundle_first" {'checked' if cur_join_priority=="bundle_first" else ''}><span>👗 Bundle First</span></label>
-              <label class="chip"><input type="radio" name="join_action_priority" value="simultaneous" {'checked' if cur_join_priority=="simultaneous" else ''}><span>⚡ Simultaneous</span></label>
+              <label class="chip"><input type="radio" name="join_action_priority" value="simultaneous" {'checked' if cur_join_priority=="simultaneous" else ''}><span>⚡ All Simultaneous</span></label>
             </div>
           </div>
           <div class="grid-2">
@@ -2438,7 +2448,6 @@ async function saveSquadConfig(e) {{
   body.append('welcome_delay_sec', document.getElementById('welcome_delay_sec').value);
   body.append('kick_delay_sec', document.getElementById('kick_delay_sec').value);
   
-  // New fields
   body.append('join_delay_animation', document.getElementById('join_delay_animation').value);
   body.append('join_delay_bundle', document.getElementById('join_delay_bundle').value);
   body.append('join_delay_emote', document.getElementById('join_delay_emote').value);
@@ -2719,7 +2728,7 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                 
                 # New fields parsing
                 jap = params.get('join_action_priority', ['animation_first'])[0]
-                if jap not in ('animation_first', 'bundle_first', 'simultaneous'): jap = 'animation_first'
+                if jap not in ('animation_first', 'bundle_first', 'simultaneous', 'anim_emote_combo'): jap = 'animation_first'
                 jda = float(params.get('join_delay_animation', ['1.0'])[0] or 1.0)
                 if jda < 0.1 or jda > 30: jda = 1.0
                 jdb = float(params.get('join_delay_bundle', ['1.0'])[0] or 1.0)
@@ -2836,7 +2845,7 @@ async def main_async():
         "[bold green]🎭 Auto Emote Equip ON LOGIN ✅[/bold green]\n"
         "[bold red]🛑 STOP ALL BOTS: Web One-Click ✅[/bold red]\n"
         "[bold cyan]⚡ Fast Concurrent Login Enabled ✅[/bold cyan]\n"
-        "[bold yellow]🎯 Join Priority: Animation / Bundle First ✅[/bold yellow]\n"
+        "[bold yellow]🎯 Join Priority: Animation + Emote Combo ✅[/bold yellow]\n"
         "[bold violet]🤖 Bot Self-Emote Toggle ✅[/bold violet]\n"
         "[bold yellow]⚠️ NO FALLBACK — Pure API Data[/bold yellow]",
         title="[bold red]🔥 MAHIR SQUAD BOT — CYBERPUNK 🔥[/bold red]",
