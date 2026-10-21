@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# MAHIR SQUAD BOT — PREMIUM CYBERPUNK EDITION (SIMPLIFIED + FIXED MSG PACKET)
-# ✅ Simplified Config UI (Only Important Options)
-# ✅ Fixed Squad Message Packet (Clean Structure)
+# MAHIR SQUAD BOT — PREMIUM CYBERPUNK EDITION (FIXED + FAST LOGIN + JOIN PRIORITY)
+# ✅ Auto Update · Auto Emote · Auto Animation · Dual Recruit
+# ✅ Web Account Manager · Stop All · Auto Kick
+# ✅ Web-Editable Join Emotes · Bot Self-Emote Toggle
+# ✅ Premium Cyberpunk RGB Dashboard
 # ✅ Fast Concurrent Login & Join Event Priority Control
+# ✅ Animation + Emote Combo Simultaneously (Animation = Emote)
 
 import subprocess, sys, importlib, os, ssl, json, time, random, asyncio, threading, gc, re, struct, base64
 from collections import deque
@@ -255,32 +258,40 @@ DEFAULT_COMMANDS = {
 }
 
 # ================================================================
-#   WEB CONFIG (⭐ SIMPLIFIED - Only Important Options)
+#   WEB CONFIG
 # ================================================================
 web_config = {
     "squad_size": 4,
     "world_recruit_count": 3,
     "world_recruit_type": "1",
-    "squad_lifetime_sec": 20,          # Simplified default
+    "squad_lifetime_sec": 5,
     "auto_recreate": True,
     "welcome_msg": DEFAULT_WELCOME_MSG,
     "auto_recruit_on_join": True,
+    "auto_recruit_on_leave": True,
+    "recruit_delay_sec": 1.5,
     "auto_bundle_on_join": True,
     "bundle_count_on_join": 2,
     "auto_animation": True,
     "animation_interval_sec": 10,
     "auto_emote_on_join": True,
+    "emote_join_delay_sec": 0.5,
     "join_emote_pool": DEFAULT_JOIN_EMOTES[:],
     "auto_kick_on_join": False,
+    "kick_delay_sec": 1.0,
     "kick_msg": "[B][C][FF0000]🚫 ACCESS DENIED!\n[FFFFFF]You have been auto-kicked.",
     "auto_welcome_on_join": True,
+    "welcome_delay_sec": 0.5,
     "bot_self_emote_enabled": False,
     "bot_self_emote_pool": DEFAULT_JOIN_EMOTES[:],
     "bot_self_emote_interval": 8.0,
-    "join_action_priority": "animation_first",
+    
+    # ⭐ New Join Priority & Delay Configs
+    "join_action_priority": "animation_first", # animation_first, bundle_first, simultaneous, anim_emote_combo
     "join_delay_animation": 1.0,
     "join_delay_bundle": 1.0,
     "join_delay_emote": 0.5,
+    
     "commands": {},
 }
 web_config_lock = threading.Lock()
@@ -321,6 +332,8 @@ def load_web_config():
                 if isinstance(v, int) and lo <= v <= hi: web_config[k] = v
 
             float_fields = {
+                "recruit_delay_sec": (0.5, 30), "emote_join_delay_sec": (0.1, 30),
+                "kick_delay_sec": (0.1, 30), "welcome_delay_sec": (0.1, 30),
                 "bot_self_emote_interval": (1, 300),
                 "join_delay_animation": (0.1, 30),
                 "join_delay_bundle": (0.1, 30),
@@ -337,7 +350,7 @@ def load_web_config():
             if jap in ("animation_first", "bundle_first", "simultaneous", "anim_emote_combo"): web_config["join_action_priority"] = jap
 
             bool_fields = [
-                "auto_recreate", "auto_recruit_on_join",
+                "auto_recreate", "auto_recruit_on_join", "auto_recruit_on_leave",
                 "auto_bundle_on_join", "auto_animation", "auto_emote_on_join",
                 "auto_kick_on_join", "auto_welcome_on_join", "bot_self_emote_enabled"
             ]
@@ -395,11 +408,11 @@ def save_web_config():
             data = {k: web_config[k] for k in [
                 "squad_size", "world_recruit_count", "world_recruit_type",
                 "squad_lifetime_sec", "auto_recreate", "welcome_msg",
-                "auto_recruit_on_join",
+                "auto_recruit_on_join", "auto_recruit_on_leave", "recruit_delay_sec",
                 "auto_bundle_on_join", "bundle_count_on_join", "auto_animation",
-                "animation_interval_sec", "auto_emote_on_join",
-                "join_emote_pool", "auto_kick_on_join", "kick_msg",
-                "auto_welcome_on_join",
+                "animation_interval_sec", "auto_emote_on_join", "emote_join_delay_sec",
+                "join_emote_pool", "auto_kick_on_join", "kick_delay_sec", "kick_msg",
+                "auto_welcome_on_join", "welcome_delay_sec",
                 "bot_self_emote_enabled", "bot_self_emote_pool", "bot_self_emote_interval",
                 "join_action_priority", "join_delay_animation", "join_delay_bundle", "join_delay_emote",
             ]}
@@ -683,7 +696,6 @@ async def MAHIR_LeaveSquad(key, iv, region, bot_own_id):
     pt = '0514' if region.lower() == "ind" else ("0519" if region.lower() == "bd" else "0515")
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), pt, key, iv)
 
-# ⭐⭐⭐ REPLACED: MAHIR_SendSquadMsg with CLEAN STRUCTURE ⭐⭐⭐
 async def MAHIR_SendSquadMsg(squad_owner, message, bot_uid, key, iv):
     try:
         if not squad_owner or not bot_uid: return None
@@ -695,7 +707,7 @@ async def MAHIR_SendSquadMsg(squad_owner, message, bot_uid, key, iv):
         fields = {
             1: 1,
             2: {
-                1: squad_owner,       # Squad owner UID
+                1: bot_uid,       # Squad owner UID
                 2: bot_uid,           # ⭐ Bot UID who sends message
                 3: 3,                 # Fixed value from your example
                 4: msg_str,           # Message text
@@ -1003,7 +1015,7 @@ async def batch_account_loader():
                     active_bots[uid] = bot
                     bot_tasks[uid] = asyncio.create_task(bot.keep_online_forever())
                     console.print(f"[bold green]✨ UID {uid} → Launched[/bold green]")
-                    await asyncio.sleep(0.01)
+                    await asyncio.sleep(0.01) # ⭐ Faster launching
             else:
                 for uid in list(bot_tasks.keys()):
                     try:
@@ -1146,6 +1158,7 @@ class SquadBot:
             console.print(f"[red]Anim err: {e}[/red]")
         return False
 
+    # ⭐ NEW: Orchestrator for Join Events Sequence
     async def _handle_join_events(self, target_uid, target_name, sq_id, chat_code):
         try:
             with web_config_lock:
@@ -1154,11 +1167,14 @@ class SquadBot:
                 d_bundle = float(web_config.get("join_delay_bundle", 1.0))
                 d_emote = float(web_config.get("join_delay_emote", 0.5))
                 kick_enabled = web_config.get("auto_kick_on_join", False)
+                kick_delay = float(web_config.get("kick_delay_sec", 1.0))
                 welcome_enabled = web_config.get("auto_welcome_on_join", True)
+                welcome_delay = float(web_config.get("welcome_delay_sec", 0.5))
                 anim_enabled = web_config.get("auto_animation", True)
                 bundle_enabled = web_config.get("auto_bundle_on_join", True)
                 emote_enabled = web_config.get("auto_emote_on_join", True)
 
+            # Sequence logic based on priority
             if priority == "anim_emote_combo":
                 tasks = []
                 if anim_enabled: tasks.append(self._send_animation_once())
@@ -1176,17 +1192,17 @@ class SquadBot:
                 if bundle_enabled: await asyncio.sleep(d_bundle); await self._send_bundle_on_join()
                 if anim_enabled: await asyncio.sleep(d_anim); await self._send_animation_once()
                 if emote_enabled: await asyncio.sleep(d_emote); await self._send_emote_on_join(target_uid)
-            else:
+            else: # simultaneous
                 if bundle_enabled: asyncio.create_task(self._send_bundle_on_join())
                 if anim_enabled: asyncio.create_task(self._send_animation_once())
                 if emote_enabled: asyncio.create_task(self._send_emote_on_join(target_uid))
 
             if kick_enabled:
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(kick_delay)
                 await self._auto_kick_member(target_uid, target_name)
 
             if welcome_enabled and sq_id and chat_code:
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(welcome_delay)
                 await self._auto_welcome_member(sq_id, chat_code, target_uid, target_name)
 
         except Exception as e:
@@ -1196,6 +1212,7 @@ class SquadBot:
         try:
             with web_config_lock:
                 enabled = web_config.get("auto_kick_on_join", False)
+                delay = float(web_config.get("kick_delay_sec", 1.0))
                 km = web_config.get("kick_msg", "")
             if not enabled or not self.online_writer: return False
             
@@ -1212,7 +1229,7 @@ class SquadBot:
                 km2 = str(km).replace("{user_name}", str(target_name)).replace("{user_id}", str(target_uid))
                 sq_id = self.current_squad_id
                 if sq_id and self.chat_writer and self.bot_uid:
-                    msg_pkt = await MAHIR_SendSquadMsg(int(sq_id), km2, int(self.bot_uid), self.key, self.iv)
+                    msg_pkt = await MAHIR_SendSquadMsg(int(bot_uid), km2, int(self.bot_uid), self.key, self.iv)
                     if msg_pkt:
                         self.chat_writer.write(msg_pkt)
                         await self.chat_writer.drain()
@@ -1243,7 +1260,7 @@ class SquadBot:
                 wt = web_config.get("welcome_msg", DEFAULT_WELCOME_MSG)
             wm = wt.replace("{user_name}", str(target_name))
             
-            mp = await MAHIR_SendSquadMsg(int(squad_id), wm, int(self.bot_uid), self.key, self.iv)
+            mp = await MAHIR_SendSquadMsg(int(bot_uid), wm, int(self.bot_uid), self.key, self.iv)
             if mp:
                 self.chat_writer.write(mp)
                 await self.chat_writer.drain()
@@ -1360,7 +1377,7 @@ class SquadBot:
             sq_id = squad_id or self.current_squad_id
             if not sq_id: return False
             
-            pkt = await MAHIR_SendSquadMsg(int(sq_id), message, int(self.bot_uid), self.key, self.iv)
+            pkt = await MAHIR_SendSquadMsg(int(bot_uid), message, int(self.bot_uid), self.key, self.iv)
             if pkt:
                 self.chat_writer.write(pkt); await self.chat_writer.drain()
                 return True
@@ -1650,7 +1667,7 @@ class SquadBot:
                 return
 
 # ================================================================
-#   WEB SERVER — SIMPLIFIED CONFIG UI (⭐ Only Important Options)
+#   WEB SERVER — PREMIUM CYBERPUNK DASHBOARD
 # ================================================================
 class BotHandler(BaseHTTPRequestHandler):
     def _json_response(self, data, status=200):
@@ -1685,23 +1702,29 @@ class BotHandler(BaseHTTPRequestHandler):
                 cur_size = web_config.get("squad_size", 4)
                 cur_recruit = web_config.get("world_recruit_count", 3)
                 cur_recruit_type = web_config.get("world_recruit_type", "1")
-                cur_lifetime = web_config.get("squad_lifetime_sec", 20)
+                cur_lifetime = web_config.get("squad_lifetime_sec", 5)
                 cur_auto = web_config.get("auto_recreate", True)
                 rc_welcome = web_config.get("welcome_msg", DEFAULT_WELCOME_MSG)
                 rc_join = web_config.get("auto_recruit_on_join", True)
+                rc_leave = web_config.get("auto_recruit_on_leave", True)
+                rc_delay = web_config.get("recruit_delay_sec", 1.5)
                 rc_bundle = web_config.get("auto_bundle_on_join", True)
                 rc_bundle_count = web_config.get("bundle_count_on_join", 2)
                 cur_anim = web_config.get("auto_animation", True)
                 cur_anim_int = web_config.get("animation_interval_sec", 10)
                 cur_emote_join = web_config.get("auto_emote_on_join", True)
+                cur_emote_delay = web_config.get("emote_join_delay_sec", 0.5)
                 cur_kick_join = web_config.get("auto_kick_on_join", False)
+                cur_kick_delay = web_config.get("kick_delay_sec", 1.0)
                 kick_msg_raw = web_config.get("kick_msg", "")
                 cur_welcome_join = web_config.get("auto_welcome_on_join", True)
+                cur_welcome_delay = web_config.get("welcome_delay_sec", 0.5)
                 cur_self_emote = web_config.get("bot_self_emote_enabled", False)
                 cur_self_emote_int = web_config.get("bot_self_emote_interval", 8.0)
                 join_emote_pool = list(web_config.get("join_emote_pool", DEFAULT_JOIN_EMOTES))
                 self_emote_pool = list(web_config.get("bot_self_emote_pool", DEFAULT_JOIN_EMOTES))
                 
+                # New fields
                 cur_join_priority = web_config.get("join_action_priority", "animation_first")
                 cur_delay_anim = web_config.get("join_delay_animation", 1.0)
                 cur_delay_bundle = web_config.get("join_delay_bundle", 1.0)
@@ -1754,6 +1777,7 @@ body::after{{
   -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 92%);
 }}
 
+/* ═══ SIDEBAR ═══ */
 .layout{{display:flex; min-height:100vh; position:relative; z-index:1}}
 .sidebar{{
   width:250px; flex-shrink:0;
@@ -1794,8 +1818,10 @@ body::after{{
 }}
 .sb-link .ico{{font-size:1.15em;width:22px;text-align:center}}
 
+/* ═══ MAIN ═══ */
 .main{{flex:1;padding:22px 26px 44px;min-width:0}}
 
+/* ═══ TOPBAR ═══ */
 .topbar{{
   position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;
   padding:20px 26px;background:linear-gradient(135deg,rgba(15,22,40,0.92),rgba(19,27,51,0.75));
@@ -1826,6 +1852,7 @@ body::after{{
 .dot{{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor;animation:blink 1.4s infinite}}
 @keyframes blink{{50%{{opacity:0.4;transform:scale(0.85)}}}}
 
+/* ═══ BANNER ═══ */
 .status-banner{{
   position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:14px;
   padding:18px 24px;border-radius:var(--r);margin-bottom:22px;
@@ -1840,6 +1867,7 @@ body::after{{
 }}
 @keyframes swipe{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}
 
+/* ═══ STATS ═══ */
 .stats-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:22px}}
 .stat-card{{
   position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);
@@ -1861,6 +1889,7 @@ body::after{{
 .stat-card.s-violet{{--tint:rgba(168,85,247,0.35);--glow:rgba(168,85,247,0.22);--vc:#C084FC}}
 .stat-card.s-cyan{{--tint:rgba(34,211,238,0.35);--glow:rgba(34,211,238,0.22);--vc:#22D3EE}}
 
+/* ═══ PANELS ═══ */
 .panel{{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:24px;margin-bottom:20px;transition:border-color 0.3s}}
 .panel:hover{{border-color:var(--line-hi)}}
 .panel-head{{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-bottom:16px;margin-bottom:20px;border-bottom:1px solid var(--line)}}
@@ -1871,6 +1900,7 @@ body::after{{
 .panel-ico.green{{background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.14))}}
 .panel-ico.red{{background:linear-gradient(135deg,rgba(239,68,68,0.18),rgba(220,38,38,0.14))}}
 
+/* ═══ BUTTONS ═══ */
 .btn{{
   position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:10px;
   padding:13px 24px;border:1px solid rgba(255,255,255,0.12);border-radius:12px;
@@ -1902,6 +1932,7 @@ body::after{{
 .action-tile.amber{{background:linear-gradient(135deg,var(--amber),#C2410C)!important}}
 .action-tile.pink{{background:linear-gradient(135deg,var(--magenta),#9D174D)!important}}
 
+/* ═══ FORMS ═══ */
 .field{{display:flex;flex-direction:column;gap:8px}}
 .field-label{{font-size:0.72em;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-2)}}
 input,textarea,select{{
@@ -1953,6 +1984,7 @@ input[type="file"]:hover{{border-color:var(--magenta);color:var(--magenta)}}
 .hint b{{color:var(--amber);font-style:normal}}
 .hint code{{background:rgba(168,85,247,0.15);color:#C084FC;padding:2px 7px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:0.9em}}
 
+/* ═══ TABLE ═══ */
 .table-shell{{overflow-x:auto;max-height:480px;overflow-y:auto;border-radius:12px;border:1px solid var(--line);background:rgba(5,7,15,0.55)}}
 .table-shell::-webkit-scrollbar{{width:8px;height:8px}}
 .table-shell::-webkit-scrollbar-thumb{{background:linear-gradient(180deg,var(--cyan),var(--violet));border-radius:4px}}
@@ -1970,6 +2002,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
 .badge-live::before{{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite}}
 .empty-row td{{text-align:center;padding:40px 20px;color:var(--txt-3);font-style:italic}}
 
+/* ═══ LOG ═══ */
 .log-shell{{
   height:420px;overflow-y:auto;padding:18px;border-radius:12px;border:1px solid var(--line);
   background:#02040A;font-family:'JetBrains Mono',monospace;font-size:12px;
@@ -1985,9 +2018,11 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
 .log-shell > div{{padding:3px 10px;border-left:2px solid transparent;transition:all 0.18s;word-break:break-word}}
 .log-shell > div:hover{{background:rgba(34,211,238,0.06);border-left-color:var(--cyan)}}
 
+/* ═══ FOOTER ═══ */
 .foot{{text-align:center;padding:24px;color:var(--txt-3);font-size:0.8em;letter-spacing:1.6px;border-top:1px solid var(--line);margin-top:14px}}
 .foot b{{color:var(--cyan)}}
 
+/* ═══ TOAST ═══ */
 .toast{{
   visibility:hidden;position:fixed;right:22px;bottom:22px;z-index:9999;
   min-width:280px;max-width:88vw;padding:16px 22px;border-radius:12px;
@@ -2001,6 +2036,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
 
 .section{{scroll-margin-top:20px}}
 
+/* ═══ MOBILE ═══ */
 @media (max-width:900px){{
   .sidebar{{position:fixed;left:0;top:0;transform:translateX(-100%);box-shadow:10px 0 36px rgba(0,0,0,0.7)}}
   .sidebar.open{{transform:translateX(0)}}
@@ -2032,6 +2068,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 <div class="layout">
 
+  <!-- ═══ SIDEBAR ═══ -->
   <aside class="sidebar" id="sidebar">
     <div class="sb-logo">
       <div class="sb-mark">🔥</div>
@@ -2050,8 +2087,10 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
     </nav>
   </aside>
 
+  <!-- ═══ MAIN ═══ -->
   <main class="main">
 
+    <!-- TOPBAR -->
     <header class="topbar">
       <div class="tb-left">
         <button class="tb-menu" onclick="toggleSidebar()">☰</button>
@@ -2064,11 +2103,13 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </header>
 
+    <!-- STATUS BANNER -->
     <div class="status-banner" id="status-banner"
          style="background:{'linear-gradient(135deg,#EF4444,#7F1D1D)' if stopped_now else 'linear-gradient(135deg,#10B981,#065F46)'};">
       <span>{'🛑 BOTS STOPPED' if stopped_now else '🟢 BOTS RUNNING'}</span>
     </div>
 
+    <!-- STATS -->
     <section class="section" id="section-dashboard">
       <div class="stats-grid">
         <div class="stat-card s-green">
@@ -2102,6 +2143,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
+    <!-- QUICK ACTIONS -->
     <section class="panel">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico amber">⚡</div> Quick Actions</div>
@@ -2127,6 +2169,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
+    <!-- ACCOUNT MANAGER -->
     <section class="panel section" id="section-accounts">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico">👥</div> Account Manager</div>
@@ -2162,7 +2205,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
-    <!-- ⭐ SIMPLIFIED SQUAD CONFIG - Only Important Options ⭐ -->
+    <!-- SQUAD CONFIG -->
     <section class="panel section" id="section-config">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico green">⚙️</div> Squad Configuration</div>
@@ -2170,7 +2213,6 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
       <form id="squad-form" onsubmit="saveSquadConfig(event)">
         <div class="stack">
-          <!-- Squad Size -->
           <div class="field">
             <label class="field-label">👥 Squad Size</label>
             <div class="chips">
@@ -2179,7 +2221,6 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
               <label class="chip"><input type="radio" name="squad_size" value="5" {'checked' if cur_size==5 else ''}><span>6 Players</span></label>
             </div>
           </div>
-          <!-- World Recruit Type -->
           <div class="field">
             <label class="field-label">📢 World Recruit Type</label>
             <div class="chips">
@@ -2197,8 +2238,16 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
             <div class="field"><label class="field-label">✨ Animation Interval (sec)</label><input type="number" min="5" max="300" id="animation_interval_sec" value="{cur_anim_int}"></div>
             <div class="field"><label class="field-label">👗 Bundle Count</label><input type="number" min="1" max="5" id="bundle_count_on_join" value="{rc_bundle_count}"></div>
           </div>
+          <div class="grid-2">
+            <div class="field"><label class="field-label">⏱️ Recruit Delay (sec)</label><input type="number" min="0.5" max="30" step="0.5" id="recruit_delay_sec" value="{rc_delay}"></div>
+            <div class="field"><label class="field-label">🎭 Emote Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="emote_join_delay_sec" value="{cur_emote_delay}"></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label class="field-label">💬 Welcome Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="welcome_delay_sec" value="{cur_welcome_delay}"></div>
+            <div class="field"><label class="field-label">🚫 Kick Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="kick_delay_sec" value="{cur_kick_delay}"></div>
+          </div>
           
-          <!-- Join Action Priority -->
+          <!-- ⭐ NEW JOIN SEQUENCE CONFIG -->
           <div class="field">
             <label class="field-label" style="color:var(--magenta); font-size:0.8em;">🎯 Join Action Priority (কোনটা আগে হবে)</label>
             <div class="chips">
@@ -2208,13 +2257,23 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
               <label class="chip"><input type="radio" name="join_action_priority" value="simultaneous" {'checked' if cur_join_priority=="simultaneous" else ''}><span>⚡ All Simultaneous</span></label>
             </div>
           </div>
-          
-          <!-- Feature Toggles -->
+          <div class="grid-2">
+            <div class="field"><label class="field-label" style="color:var(--cyan);">✨ Animation Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="join_delay_animation" value="{cur_delay_anim}"></div>
+            <div class="field"><label class="field-label" style="color:var(--cyan);">👗 Bundle Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="join_delay_bundle" value="{cur_delay_bundle}"></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label class="field-label" style="color:var(--cyan);">🎭 Emote Delay (sec)</label><input type="number" min="0.1" max="30" step="0.1" id="join_delay_emote" value="{cur_delay_emote}"></div>
+            <!-- Keep this empty to balance grid -->
+            <div class="field"></div>
+          </div>
+
+          <div class="field"><label class="field-label">🚫 Kick Message</label><input type="text" id="kick_msg" value="{kick_msg_esc}"></div>
           <div class="field">
             <label class="field-label">🔧 Feature Toggles</label>
             <div class="chips">
               <label class="chip"><input type="checkbox" id="auto_recreate_chk" {'checked' if cur_auto else ''}><span>🔁 Auto Recreate</span></label>
               <label class="chip"><input type="checkbox" id="auto_recruit_on_join_chk" {'checked' if rc_join else ''}><span>🟢 Recruit on Join</span></label>
+              <label class="chip"><input type="checkbox" id="auto_recruit_on_leave_chk" {'checked' if rc_leave else ''}><span>🔴 Recruit on Leave</span></label>
               <label class="chip"><input type="checkbox" id="auto_bundle_on_join_chk" {'checked' if rc_bundle else ''}><span>👗 Bundle on Join</span></label>
               <label class="chip"><input type="checkbox" id="auto_emote_on_join_chk" {'checked' if cur_emote_join else ''}><span>🎭 Emote on Join</span></label>
               <label class="chip"><input type="checkbox" id="auto_animation_chk" {'checked' if cur_anim else ''}><span>✨ Auto Animation</span></label>
@@ -2222,20 +2281,11 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
               <label class="chip"><input type="checkbox" id="auto_kick_on_join_chk" {'checked' if cur_kick_join else ''}><span>🚫 Auto Kick on Join</span></label>
             </div>
           </div>
-          
-          <!-- Welcome Message -->
           <div class="field">
             <label class="field-label">💬 Welcome Message</label>
             <textarea id="welcome_msg_ta" style="height:170px; color:#F59E0B;" spellcheck="false">{welcome_esc}</textarea>
             <div class="hint">Placeholder: <b>{{user_name}}</b></div>
           </div>
-          
-          <!-- Kick Message -->
-          <div class="field">
-            <label class="field-label">🚫 Kick Message</label>
-            <input type="text" id="kick_msg" value="{kick_msg_esc}">
-          </div>
-          
           <button type="submit" class="btn green" id="squad-save-btn" style="padding:15px; width:100%;">💾 Save Squad Config</button>
         </div>
       </form>
@@ -2274,6 +2324,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
+    <!-- ACTIVE BOTS -->
     <section class="panel section" id="section-bots">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico">📋</div> Active Bots</div>
@@ -2292,6 +2343,7 @@ tbody tr:hover{{background:rgba(34,211,238,0.06)}}
       </div>
     </section>
 
+    <!-- LIVE LOG -->
     <section class="panel section" id="section-logs">
       <div class="panel-head">
         <div class="panel-title"><div class="panel-ico red">📜</div> Live Log</div>
@@ -2408,10 +2460,19 @@ async function saveSquadConfig(e) {{
   body.append('squad_lifetime_sec', document.getElementById('squad_lifetime_sec').value);
   body.append('animation_interval_sec', document.getElementById('animation_interval_sec').value);
   body.append('bundle_count_on_join', document.getElementById('bundle_count_on_join').value);
+  body.append('recruit_delay_sec', document.getElementById('recruit_delay_sec').value);
+  body.append('emote_join_delay_sec', document.getElementById('emote_join_delay_sec').value);
+  body.append('welcome_delay_sec', document.getElementById('welcome_delay_sec').value);
+  body.append('kick_delay_sec', document.getElementById('kick_delay_sec').value);
+  
+  body.append('join_delay_animation', document.getElementById('join_delay_animation').value);
+  body.append('join_delay_bundle', document.getElementById('join_delay_bundle').value);
+  body.append('join_delay_emote', document.getElementById('join_delay_emote').value);
   
   body.append('kick_msg', document.getElementById('kick_msg').value);
   body.append('auto_recreate', document.getElementById('auto_recreate_chk').checked ? '1' : '0');
   body.append('auto_recruit_on_join', document.getElementById('auto_recruit_on_join_chk').checked ? '1' : '0');
+  body.append('auto_recruit_on_leave', document.getElementById('auto_recruit_on_leave_chk').checked ? '1' : '0');
   body.append('auto_bundle_on_join', document.getElementById('auto_bundle_on_join_chk').checked ? '1' : '0');
   body.append('auto_emote_on_join', document.getElementById('auto_emote_on_join_chk').checked ? '1' : '0');
   body.append('auto_animation', document.getElementById('auto_animation_chk').checked ? '1' : '0');
@@ -2659,10 +2720,11 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                 if rc < 1 or rc > 10: rc = 3
                 wrt = params.get('world_recruit_type', ['1'])[0]
                 if wrt not in ('1', '2', 'half', 'random'): wrt = '1'
-                lt = int(params.get('squad_lifetime_sec', ['20'])[0])
-                if lt < 5 or lt > 3600: lt = 20
+                lt = int(params.get('squad_lifetime_sec', ['5'])[0])
+                if lt < 5 or lt > 3600: lt = 5
                 ar  = params.get('auto_recreate', ['0'])[0] == '1'
                 ajo = params.get('auto_recruit_on_join', ['0'])[0] == '1'
+                alv = params.get('auto_recruit_on_leave', ['0'])[0] == '1'
                 abj = params.get('auto_bundle_on_join', ['0'])[0] == '1'
                 aej = params.get('auto_emote_on_join', ['0'])[0] == '1'
                 aan = params.get('auto_animation', ['0'])[0] == '1'
@@ -2672,9 +2734,24 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                 if bcj < 1 or bcj > 5: bcj = 2
                 ais = int(params.get('animation_interval_sec', ['10'])[0])
                 if ais < 5 or ais > 300: ais = 10
+                rds = float(params.get('recruit_delay_sec', ['1.5'])[0] or 1.5)
+                if rds < 0.5 or rds > 30: rds = 1.5
+                ejd = float(params.get('emote_join_delay_sec', ['0.5'])[0] or 0.5)
+                if ejd < 0.1 or ejd > 30: ejd = 0.5
+                wds = float(params.get('welcome_delay_sec', ['0.5'])[0] or 0.5)
+                if wds < 0.1 or wds > 30: wds = 0.5
+                kds = float(params.get('kick_delay_sec', ['1.0'])[0] or 1.0)
+                if kds < 0.1 or kds > 30: kds = 1.0
                 
+                # New fields parsing
                 jap = params.get('join_action_priority', ['animation_first'])[0]
                 if jap not in ('animation_first', 'bundle_first', 'simultaneous', 'anim_emote_combo'): jap = 'animation_first'
+                jda = float(params.get('join_delay_animation', ['1.0'])[0] or 1.0)
+                if jda < 0.1 or jda > 30: jda = 1.0
+                jdb = float(params.get('join_delay_bundle', ['1.0'])[0] or 1.0)
+                if jdb < 0.1 or jdb > 30: jdb = 1.0
+                jde = float(params.get('join_delay_emote', ['0.5'])[0] or 0.5)
+                if jde < 0.1 or jde > 30: jde = 0.5
                 
                 km = params.get('kick_msg', [''])[0] or "[B][C][FF0000]🚫 Auto-Kicked!"
                 wm = params.get('welcome_msg', [''])[0] or DEFAULT_WELCOME_MSG
@@ -2685,19 +2762,29 @@ refreshStatus();    setInterval(refreshStatus, 3000);
                     web_config['squad_lifetime_sec'] = lt
                     web_config['auto_recreate'] = ar
                     web_config['auto_recruit_on_join'] = ajo
+                    web_config['auto_recruit_on_leave'] = alv
                     web_config['auto_bundle_on_join'] = abj
                     web_config['auto_emote_on_join'] = aej
                     web_config['auto_animation'] = aan
                     web_config['animation_interval_sec'] = ais
                     web_config['bundle_count_on_join'] = bcj
+                    web_config['recruit_delay_sec'] = rds
                     web_config['welcome_msg'] = wm
                     web_config['auto_welcome_on_join'] = awj
                     web_config['auto_kick_on_join'] = ako
+                    web_config['emote_join_delay_sec'] = ejd
+                    web_config['welcome_delay_sec'] = wds
+                    web_config['kick_delay_sec'] = kds
                     web_config['kick_msg'] = km
+                    
+                    # New fields save
                     web_config['join_action_priority'] = jap
+                    web_config['join_delay_animation'] = jda
+                    web_config['join_delay_bundle'] = jdb
+                    web_config['join_delay_emote'] = jde
                     
                 save_web_config()
-                console.print(f"[green]⚙️ Config Updated (Simplified)[/green]")
+                console.print(f"[green]⚙️ Config Updated[/green]")
                 self._text_response('OK')
             except Exception as e:
                 self._text_response(f"Error: {e}", 400)
