@@ -1,12 +1,12 @@
-# xC4.py — MERGED (CDX.py + xC4.py) by MAHIR
-# All packet-generating functions are ASYNC (matches main.py)
+# xC4.py — CLEANED & FIXED by MAHIR
+# সব packet-generating function ASYNC (main.py-এর সাথে compatible)
+# ❌ সব sync duplicate সরানো হয়েছে (RuntimeWarning fix)
 
 import time, requests, json, binascii, urllib3, base64, datetime, re, socket, threading, random, os, sys, asyncio
 from protobuf_decoder.protobuf_decoder import Parser
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from datetime import datetime
-from google.protobuf.timestamp_pb2 import Timestamp
 from random import choice
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -234,7 +234,7 @@ async def ExiT(idT, K, V):
 async def Join_Squad_Packet_TC(T, key, iv):
     fields = {1: 4, 2: {4: "\u0001\u0003\u0004\u0007\t\n\u000b\u0012\u000e\u0016\u0019\u001a \u001d'",
                         5: str(T), 6: 6, 8: 1,
-                        9: {2: 3140, 3: "vX\\Q\u0016\u0005\bN\u0006R\b\u0001U\u0002\rR[\u0003TU\u0006\b\u0007U\u0004P\\\u0000RRRT\t\u0007\fP\n\nS\u0000\u0013\u0000\u0001HpYHFN\u001e\u0000\u001d\u0001\u001d\u0016\u0005\nN[U\u0006\u0003cwewhaSdeF^Fr}Q|V\u000edRS\u0000\u0005\t\u001b\u0003K^s`c^\u0005\u001fw\u0003\u0005@Bz\u0006\u0006\\{\bVbSR~J{La\u0005\u0011\u0006\u0005L[UNAwHZ_\u0019s~_Rvdy\u001d_uq\u001aCNRpM{\n\u0015\bMaBR[JQezTvcELuu\u0005_tHdFS\u0006`OY\u0007\u000b\u0013\u0003LYA\u0000AAzPWdqDy~Uj\\\u0005GgovQzrU\r\u0012\tHq[@Dr[\u0000`zS|MIZR\u0005r\u0006g\u0005pM\nPTrS\f\u0013\u0005\rHIwVRhAgfl\u000e]R\u0019EZ\\A@\fLHYN\u001bXW\t\u0016\u0007DjydvuG\u0001]MUO\u0005^[tBcS\u0013J@\u0002\\ZJ\f\b\u0017\fNyNaV}F~\rT\u0006Y\u000fBzyag\u0007@{BxU^WNV\t\u001b\u0000\u0007J\\\u0003d\u0003vBBQ^^\u001bCd\u0005\\M`F@C\t\u0007^sUS\u000f\u0014\u0003LRX`lzm_\u0004ovtxDwPr@`^B_Y\\`Mks\n",
+                        9: {2: 3140, 3: "vX\\Q\u0016\u0005\bN\u0006R\b\u0001U\u0002\rR[\u0003TU\u0006\b\u0007U\u0004P\\\u0000RRRT\t\u0007\fP\n\nS\u0000\u0013\u0000\u0001HpYHFN\u001e\u0000\u001d\u0001\u001d\u0016\u0005\nN[U\u0006\u0003cwewhaSdeF^Fr}Q|V\u000edRS\u0000\u0005\t\u001b\u0003K^s`c^\u0005\u001fw\u0003\u0005@Bz\u0006\u0006\\{\bVbSR~J{La\u0005\u0011\u0006\u0005L[UNAwHZ_\u0019s~_Rvdy\u001d_uq\u001aCNRpM{\n\u0015\bMaBR[JQezTvcELuu\u0005_tHdFS\u0006`OY\u0007\u000b\u0013\u0003LYA\u0000AAzPWdqDy~Uj\u007f\\\u0005\u007fGgovQzrU\r\u0012\tHq[@Dr[\u0000`zS|MIZR\u0005r\u0006g\u0005pM\nPTrS\f\u0013\u0005\rHIwVRhAgfl\u007f\u000e]R\u0019EZ\\A@\fLHYN\u001bXW\t\u0016\u0007DjydvuG\u0001]MU\u007fO\u0005^[tBcS\u0013J@\u0002\\ZJ\f\b\u0017\fNyNaV}F~\rT\u0006Y\u000fBzyag\u0007@{BxU^WNV\t\u001b\u0000\u0007J\\\u0003d\u0003vBBQ^^\u001bCd\u0005\\M`F@C\u007f\t\u0007^sUS\u000f\u0014\u0003LRX`lzm_\u0004ovtxDwPr@`^B_Y\\`Mks\n",
                             4: "zW\\R", 6: 11, 7: "\u0014twqqq~\u0016\u0013", 8: "1.120.19", 9: 3, 10: 2},
                         13: "ar", 16: "7OR\u0019"}}
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0501', key, iv)
@@ -243,7 +243,7 @@ async def GenJoinSquadsPacket(T, key, iv):
     """Join random squad packet (used by JOINER bots)"""
     fields = {1: 4, 2: {4: "\u0001\u0003\u0004\u0007\t\n\u000b\u0012\u000e\u0016\u0019\u001a \u001d'",
                         5: str(T), 6: 6, 8: 1,
-                        9: {2: 3140, 3: "vX\\Q\u0016\u0005\bN\u0006R\b\u0001U\u0002\rR[\u0003TU\u0006\b\u0007U\u0004P\\\u0000RRRT\t\u0007\fP\n\nS\u0000\u0013\u0000\u0001HpYHFN\u001e\u0000\u001d\u0001\u001d\u0016\u0005\nN[U\u0006\u0003cwewhaSdeF^Fr}Q|V\u000edRS\u0000\u0005\t\u001b\u0003K^s`c^\u0005\u001fw\u0003\u0005@Bz\u0006\u0006\\{\bVbSR~J{La\u0005\u0011\u0006\u0005L[UNAwHZ_\u0019s~_Rvdy\u001d_uq\u001aCNRpM{\n\u0015\bMaBR[JQezTvcELuu\u0005_tHdFS\u0006`OY\u0007\u000b\u0013\u0003LYA\u0000AAzPWdqDy~Uj\\\u0005GgovQzrU\r\u0012\tHq[@Dr[\u0000`zS|MIZR\u0005r\u0006g\u0005pM\nPTrS\f\u0013\u0005\rHIwVRhAgfl\u000e]R\u0019EZ\\A@\fLHYN\u001bXW\t\u0016\u0007DjydvuG\u0001]MUO\u0005^[tBcS\u0013J@\u0002\\ZJ\f\b\u0017\fNyNaV}F~\rT\u0006Y\u000fBzyag\u0007@{BxU^WNV\t\u001b\u0000\u0007J\\\u0003d\u0003vBBQ^^\u001bCd\u0005\\M`F@C\t\u0007^sUS\u000f\u0014\u0003LRX`lzm_\u0004ovtxDwPr@`^B_Y\\`Mks\n",
+                        9: {2: 3140, 3: "vX\\Q\u0016\u0005\bN\u0006R\b\u0001U\u0002\rR[\u0003TU\u0006\b\u0007U\u0004P\\\u0000RRRT\t\u0007\fP\n\nS\u0000\u0013\u0000\u0001HpYHFN\u001e\u0000\u001d\u0001\u001d\u0016\u0005\nN[U\u0006\u0003cwewhaSdeF^Fr}Q|V\u000edRS\u0000\u0005\t\u001b\u0003K^s`c^\u0005\u001fw\u0003\u0005@Bz\u0006\u0006\\{\bVbSR~J{La\u0005\u0011\u0006\u0005L[UNAwHZ_\u0019s~_Rvdy\u001d_uq\u001aCNRpM{\n\u0015\bMaBR[JQezTvcELuu\u0005_tHdFS\u0006`OY\u0007\u000b\u0013\u0003LYA\u0000AAzPWdqDy~Uj\u007f\\\u0005\u007fGgovQzrU\r\u0012\tHq[@Dr[\u0000`zS|MIZR\u0005r\u0006g\u0005pM\nPTrS\f\u0013\u0005\rHIwVRhAgfl\u007f\u000e]R\u0019EZ\\A@\fLHYN\u001bXW\t\u0016\u0007DjydvuG\u0001]MU\u007fO\u0005^[tBcS\u0013J@\u0002\\ZJ\f\b\u0017\fNyNaV}F~\rT\u0006Y\u000fBzyag\u0007@{BxU^WNV\t\u001b\u0000\u0007J\\\u0003d\u0003vBBQ^^\u001bCd\u0005\\M`F@C\u007f\t\u0007^sUS\u000f\u0014\u0003LRX`lzm_\u0004ovtxDwPr@`^B_Y\\`Mks\n",
                             4: "zW\\R", 6: 11, 7: "\u0014twqqq~\u0016\u0013", 8: "1.120.19", 9: 3, 10: 2},
                         13: "ar", 16: "7OR\u0019"}}
     return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0501', key, iv)
@@ -495,32 +495,6 @@ def AuTo_ResTartinG():
 # ============================================================
 #  CRAFTLAND SHARE (Sync, uses global socket)
 # ============================================================
-def send_craftland_share_sync(sock, bot_uid, target_id, chat_type, map_code, key, iv):
-    try:
-        try: bot_uid_int = int(bot_uid)
-        except (ValueError, TypeError):
-            print(f"❌ Invalid bot_uid: {bot_uid}")
-            return False
-        craftland_json = json.dumps({"WorkshopCode": map_code, "type": "UGCMapShare"})
-        fields = {
-            1: 1,
-            2: {1: bot_uid_int, 2: int(target_id), 3: 5, 5: int(time.time()), 7: 1,
-                8: craftland_json,
-                9: {1: "MAHIR BOT", 2: xBunnEr_sync(), 4: 330, 5: 801046518, 8: "MAHIR TEAM",
-                    10: 1, 11: 1, 13: {1: 2},
-                    14: {1: 1158053040, 2: 8,
-                         3: "\x10\x15\x08\x0a\x0b\x15\x0c\x0f\x11\x04\x07\x02\x03\x0d\x0e\x12\x01\x05\x06"}},
-                10: "en", 13: {2: 2, 3: 1}}
-        }
-        proto_bytes = create_proto_sync(fields)
-        packet = generate_pk_sync(proto_bytes.hex(), '1215', key, iv)
-        sock.send(packet)
-        print(f"✅ CRAFTLAND MAP ({map_code}) SENT Successfully!")
-        return True
-    except Exception as e:
-        print(f"❌ Craftland Error: {e}")
-        return False
-
 def xBunnEr_sync():
     return int(random.choice(['902000016','902000031','902000011','902000065','902000204',
                               '902000192','902000191','902000179','902000133','902045001',
@@ -572,6 +546,101 @@ def generate_pk_sync(Pk, N, K, V):
     elif len(L) == 5: HeadEr = N + "000"
     else:             HeadEr = N + "0000"
     return bytes.fromhex(HeadEr + L + PkEnc)
+
+def send_craftland_share_sync(sock, bot_uid, target_id, chat_type, map_code, key, iv):
+    try:
+        try: bot_uid_int = int(bot_uid)
+        except (ValueError, TypeError):
+            print(f"❌ Invalid bot_uid: {bot_uid}")
+            return False
+        craftland_json = json.dumps({"WorkshopCode": map_code, "type": "UGCMapShare"})
+        fields = {
+            1: 1,
+            2: {1: bot_uid_int, 2: int(target_id), 3: 5, 5: int(time.time()), 7: 1,
+                8: craftland_json,
+                9: {1: "MAHIR BOT", 2: xBunnEr_sync(), 4: 330, 5: 801046518, 8: "MAHIR TEAM",
+                    10: 1, 11: 1, 13: {1: 2},
+                    14: {1: 1158053040, 2: 8,
+                         3: "\x10\x15\x08\x0a\x0b\x15\x0c\x0f\x11\x04\x07\x02\x03\x0d\x0e\x12\x01\x05\x06"}},
+                10: "en", 13: {2: 2, 3: 1}}
+        }
+        proto_bytes = create_proto_sync(fields)
+        packet = generate_pk_sync(proto_bytes.hex(), '1215', key, iv)
+        sock.send(packet)
+        print(f"✅ CRAFTLAND MAP ({map_code}) SENT Successfully!")
+        return True
+    except Exception as e:
+        print(f"❌ Craftland Error: {e}")
+        return False
+
+# ============================================================
+# 🎯 GROUP JOIN PACKETS (IDC4 / BD-SEA)
+# ============================================================
+async def Join_Group_Packet(owner_uid, K, V):
+    fields = {
+        1: 4,
+        2: {
+            1: int(owner_uid),
+            4: "01090a0b1219202729",
+            6: 1,
+            8: 1,
+            9: {
+                1: "08038037628D5581020100000000000000050001000400003CFD28AF0F0000004676251400000000000000000000000000000000000000ff00000000cacfa16d",
+                2: 167,
+                3: {10: 10},
+                4: "}\\V]",
+                6: 14,
+                7: "136f6370797b1c1c",
+                8: "2.132.13",
+                9: 2,
+                10: 2,
+                11: "036262535136396432356c7331416456324b796f566c5272394873314344596e2b414c35587a376d52576f52586150536147794c416f7a4155474e644f5a597a5a7457527a44484d647161615366477538706f372b737354794851746f78364647707a75506f48784d5264567161727775316a4b3150484f664c5a44317a3943767662443332764372774453555a667569796e7145757872574b3171526e77517a45644f4c35456c4c4b6a6339745059706e73643932434777585a394c35315a5230373351315246366d332b786944596d372f54316d52796d46722b41302b52654b353956686641577156324c3438324474775952653955755931395539747943523677344d4c6275514778465a4f3049344d673775667278666a6f6e4e59302f68526649772f66355a6c3344694b70424f485a4557386877517a6852673748416c374a64704c6751447375784c55334d654d364c465137666b6554697a71565777664a397678562b545a68413053613369656650722f4d3878766f62687551444a6c5a68427a51637969714e736b35433271306a4c534f54756d4764437568526a394d5947796478464a594e4275673542716d6432764d7247546f4a31554973305367524130627a3036686e6c2f45742f6470564a773477324b325876347765315a374241746777545063416f32683648494a6265726b5a7a6c614c7033315a335867304251363930354c4a356848514e6d647a463449542b7a6c344e72643456694a7a336d6f4c526b655977556d58537230534a6c5a724b72336479494c4875504a464a5966574b766871537978564c59395978373572757a48522f6a455a394672642f624c632f316c356e316276684446423343496c2b37436f4f354c7575676e76434941786d3473324d6232752b56524b7756734435682b564854424c453431304a426373624d3233"
+            },
+            11: {1: "IDC4", 2: 384, 3: "ME"},
+            13: "en",
+            15: "1792699287773478920_mqysdg0li7",
+            16: "374f521955",
+            20: {1: 21},
+            23: "a_817834292384574578",
+            27: {1: 2, 2: 4}
+        }
+    }
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', K, V)
+
+
+# ============================================================
+# 🎯 CS JOIN PACKET (IDC1 / IND-ID)
+# ============================================================
+async def Join_CS_Packet(owner_uid, K, V):
+    fields = {
+        1: 4,
+        2: {
+            1: int(owner_uid),
+            4: "01090a0b1219202729",
+            6: 5,
+            8: 1,
+            9: {
+                1: "08FBA33B62B6CCC802062E04444400000048000200460006ADDD28AF135522AF467625141101030e2d3f8d71ca3ca4f96aa054630000004f0d0e0801cacfa16d",
+                2: 612,
+                3: {10: 80},
+                4: "}\\V]",
+                6: 14,
+                7: "166e727d60661c1c",
+                8: "2.132.13",
+                9: 2,
+                10: 2,
+                11: "0362625351362f384c6b4a7246417456324b796f566c665068312f33463556374e686961305a664b4679777a6651795863594b7859633673537974644c4a365948622b54387375426c5961653934574b592b57493576647442312f487064647170396b4d343457656c636c3330314d463030654358427a47634530386c396e63635162536e6571664658564f31305453337a2f646d79455a7434584c342f49345743306d337033477743566843676c345844594e4b495954794976692b507332764f36364954786f3272753279394b79393468326a774d346b6a376731624b673161314d36494d3870646249785a3151376d2f6c555058517a536b48565254777a42596d534d644b724c694f302b66306e456d384c6c45706f4d35522f35774a71667155424b2f716c3167623536634b457567443349792f2f76466262502b6e737a506b6c446f436646466c6635445272644b6f376346547142515263574a716d6c4c44304f3956484e6a7470706236493533686658636c787a4e465252412b4c554d493148374a3231424c33717542512f396331705a4e4e4a5179307a464855696735446c676b6a686a412f6942696d427778427965414471793745675031335a42634f38576a39667072416e523948694d73563238554d753368707450614f6f6c6944765730626f332f616d78432b6935304d79494e30586d7039666135456b526d64657758377054355a70503756536b7265586644697342307574626a6b45303731333179735a424362663472507168597a6e4f3456784c74435179555547774467707144326e72504952712f756c4c556b4f4f47644646676d335265483648746447725736435071422b68433079496b37674c594774595850354262473970367470446b58534653344b78324c5457476931364a6c766c6362652f387530624377613676323559777339336c4d442f7a5a4b647a397665302b4e707a6d4e413d3d"
+            },
+            11: {1: "IDC1", 2: 144, 3: "ME"},
+            13: "en",
+            15: "1792699782490913531_a05rgcbeuf",
+            16: "374f521955",
+            20: {1: 21},
+            23: "a_817834292384574578",
+            27: {1: 2, 2: 4}
+        }
+    }
+    return await GeneRaTePk((await CrEaTe_ProTo(fields)).hex(), '0515', K, V)
 
 # ============================================================
 #  EMOTE SYSTEM
