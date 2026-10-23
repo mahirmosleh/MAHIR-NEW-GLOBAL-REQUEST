@@ -196,25 +196,72 @@ def save_ghost_config():
         return True
     except: return False
 
-# ========== CLAIM SYSTEM ==========
-claim_lock        = threading.Lock()
-claimed_targets   = {}
-completed_targets = set()
+# ================================================================
+#   CLAIM + UID BLOCK SYSTEM
+# ================================================================
+claim_lock         = threading.Lock()
+claimed_targets    = {}
 MAX_BOTS_PER_GROUP = 4
-CLAIM_WINDOW       = 3.0     # group stays "active" 3s (was 8)
-CLAIM_COOLDOWN     = 3.0     # was 2.0 → 3.0 (more time for other bots)    # wait max 2s for other bots → then exit/ghost (was 8)
+CLAIM_WINDOW       = 3.0
+CLAIM_COOLDOWN     = 3.0
+
+# ═══════════════════════════════════════════════════════════
+#   UID BLOCK SYSTEM  (web controllable)
+# ═══════════════════════════════════════════════════════════
+blocked_uids      = {}   # {uid_str: expiry_ts}  (0 = permanent)
+blocked_uids_lock = threading.Lock()
+
+def is_uid_blocked(uid):
+    """Check if UID is currently blocked (respects web_config toggle)."""
+    with web_config_lock:
+        if not web_config.get("block_uid_enabled", True):
+            return False
+    u = str(uid); now = time.time()
+    with blocked_uids_lock:
+        exp = blocked_uids.get(u)
+        if exp is None:
+            return False
+        if exp == 0 or exp > now:
+            return True
+        # expired → remove
+        del blocked_uids[u]
+        return False
+
+def block_uid(uid):
+    """Block a UID based on current web_config settings."""
+    with web_config_lock:
+        if not web_config.get("block_uid_enabled", True):
+            return
+        dur = int(web_config.get("block_uid_duration_sec", 30))
+    u = str(uid)
+    with blocked_uids_lock:
+        blocked_uids[u] = 0 if dur <= 0 else (time.time() + dur)
+
+def clear_blocked_uids():
+    with blocked_uids_lock:
+        n = len(blocked_uids); blocked_uids.clear(); return n
+
+def get_blocked_count():
+    now = time.time()
+    with blocked_uids_lock:
+        for u in [k for k, v in blocked_uids.items() if v != 0 and v <= now]:
+            del blocked_uids[u]
+        return len(blocked_uids)
 
 def try_claim_target(owner_uid, squad_code, code):
     now = time.time()
     with claim_lock:
+        # Expired claims → block UID (respecting web config)
         for u in [k for k, v in claimed_targets.items() if now - v['first_time'] > CLAIM_WINDOW]:
-            completed_targets.add(u)
+            block_uid(u)
             del claimed_targets[u]
-        if owner_uid in completed_targets: return 0
+        # Blocked → skip
+        if is_uid_blocked(owner_uid):
+            return 0
         if owner_uid in claimed_targets:
             info = claimed_targets[owner_uid]
             if info['count'] >= MAX_BOTS_PER_GROUP:
-                completed_targets.add(owner_uid); return 0
+                block_uid(owner_uid); return 0
             info['count'] += 1
             return info['count']
         claimed_targets[owner_uid] = {
@@ -317,6 +364,8 @@ DEFAULT_COMMANDS = {
 web_config = {
     "skip_level_max": 20,
     "max_bots_per_group": 4,
+    "block_uid_enabled": True,          # 🛡️ UID block on/off (web)
+    "block_uid_duration_sec": 30,       # 🛡️ 0 = permanent, else seconds (web)
     "welcome_msg": DEFAULT_WELCOME_MSG,
     "auto_emote_on_join": True,
     "emote_join_delay_sec": 0.3,
@@ -364,6 +413,11 @@ def load_web_config():
             if isinstance(saved.get("max_bots_per_group"), int) and 1 <= saved["max_bots_per_group"] <= 10:
                 web_config["max_bots_per_group"] = saved["max_bots_per_group"]
             globals()['MAX_BOTS_PER_GROUP'] = web_config["max_bots_per_group"]
+            # 🛡️ UID Block config load
+            if isinstance(saved.get("block_uid_enabled"), bool):
+                web_config["block_uid_enabled"] = saved["block_uid_enabled"]
+            if isinstance(saved.get("block_uid_duration_sec"), int) and 0 <= saved["block_uid_duration_sec"] <= 3600:
+                web_config["block_uid_duration_sec"] = saved["block_uid_duration_sec"]
             if isinstance(saved.get("bundle_count_on_join"), int) and 1 <= saved["bundle_count_on_join"] <= 5:
                 web_config["bundle_count_on_join"] = saved["bundle_count_on_join"]
             for k, (lo, hi) in {"animation_interval_sec": (5, 300), "bot_self_emote_interval": (1, 300)}.items():
@@ -394,6 +448,8 @@ def save_web_config():
             data = {
                 "skip_level_max": web_config["skip_level_max"],
                 "max_bots_per_group": web_config["max_bots_per_group"],
+                "block_uid_enabled": web_config["block_uid_enabled"],
+                "block_uid_duration_sec": web_config["block_uid_duration_sec"],
                 "welcome_msg": web_config["welcome_msg"],
                 "auto_emote_on_join": web_config["auto_emote_on_join"],
                 "emote_join_delay_sec": web_config["emote_join_delay_sec"],
@@ -674,7 +730,7 @@ async def Emote_k(TarGeT, idT, K, V, region, bot_self_id=0):
     except: return None
 
 # ================================================================
-#   JOIN PACKETS (NEW)
+#   JOIN PACKETS
 # ================================================================
 async def Join_Group_Packet(owner_uid, K, V):
     fields = {
@@ -1133,6 +1189,11 @@ class SquadBot:
             chat_code     = safe_get_str(s_data.get('17'))
 
             if not (target_uid and squad_code and chat_code): return False
+
+            # 🆕 EARLY UID BLOCK CHECK (respects web toggle)
+            if is_uid_blocked(target_uid):
+                console.print(f"[dim][{self.uid}] ⏭ Skip UID {target_uid} (blocked)[/dim]")
+                return False
 
             with web_config_lock:
                 skip_lvl = web_config.get("skip_level_max", 2)
@@ -1606,7 +1667,21 @@ td{{padding:12px 15px;border-bottom:1px solid var(--line);font-size:0.85em;white
 <label class="chip"><input type="checkbox" id="auto_bundle_on_join" {'checked' if cfg['auto_bundle_on_join'] else ''}><span>👗 Bundle on Join</span></label>
 <label class="chip"><input type="checkbox" id="auto_animation" {'checked' if cfg['auto_animation'] else ''}><span>✨ Auto Animation</span></label>
 </div>
-<button class="btn cyan" onclick="saveJoin()" id="join-save-btn" style="width:100%">💾 SAVE JOIN CONFIG</button>
+
+<div style="border-top:1px solid var(--line); margin-top:16px; padding-top:16px;">
+<div class="field-label" style="margin-bottom:10px; color:var(--cyan);">🛡️ UID BLOCK SYSTEM</div>
+<label class="chip"><input type="checkbox" id="block_uid_enabled" {'checked' if cfg['block_uid_enabled'] else ''}><span>Enable UID Block (skip recently processed targets)</span></label>
+<div class="row2" style="margin-top:10px;">
+<div class="field"><label class="field-label">Block Duration (seconds — 0 = permanent)</label><input type="number" id="block_uid_duration_sec" value="{cfg['block_uid_duration_sec']}" min="0" max="3600"></div>
+<div class="field"><label class="field-label">Currently Blocked</label><input type="text" id="blocked_count_display" value="Loading..." readonly style="color:#F59E0B;"></div>
+</div>
+<div style="display:flex; gap:10px; margin-top:10px;">
+<button class="btn cyan" onclick="saveUidBlock()" id="block-save-btn" style="flex:1">💾 SAVE BLOCK CONFIG</button>
+<button class="btn red" onclick="clearBlocked()" style="flex:1">🗑️ CLEAR ALL BLOCKED</button>
+</div>
+</div>
+
+<button class="btn cyan" onclick="saveJoin()" id="join-save-btn" style="width:100%; margin-top:14px;">💾 SAVE JOIN CONFIG</button>
 </div>
 
 <div id="tc-welcome" class="tcontent">
@@ -1673,11 +1748,42 @@ async function saveWelcome(){{const b=new URLSearchParams();b.append('welcome_ms
 async function saveGhost(){{const b=new URLSearchParams();b.append('ghost_name',document.getElementById('ghost_name').value);try{{const r=await fetch('/save_ghost',{{method:'POST',headers:{{'Content-Type':'application/x-www-form-urlencoded'}},body:b.toString()}});if(r.ok)showToast('👻 Ghost Saved','#A855F7');}}catch(e){{}}}}
 async function saveEmotes(){{const b=new URLSearchParams();b.append('join_emote_pool',document.getElementById('join_emote_pool').value);b.append('bot_self_emote_pool',document.getElementById('bot_self_emote_pool').value);b.append('bot_self_emote_enabled',document.getElementById('bot_self_emote_enabled').checked?'1':'0');b.append('bot_self_emote_interval',document.getElementById('bot_self_emote_interval').value);try{{const r=await fetch('/save_emotes',{{method:'POST',headers:{{'Content-Type':'application/x-www-form-urlencoded'}},body:b.toString()}});if(r.ok)showToast('🎭 Saved','#A855F7');}}catch(e){{}}}}
 async function saveAccounts(e){{e.preventDefault();const btn=document.getElementById('acc-save-btn');btn.disabled=true;const b=new URLSearchParams();b.append('content',document.getElementById('accounts_content').value);try{{const r=await fetch('/save_accounts',{{method:'POST',headers:{{'Content-Type':'application/x-www-form-urlencoded'}},body:b.toString()}});if(r.ok)showToast('💾 Accounts Saved','#10B981');}}catch(e){{}}btn.disabled=false;}}
+
+async function saveUidBlock(){{
+  const btn = document.getElementById('block-save-btn'); btn.disabled = true;
+  const b = new URLSearchParams();
+  b.append('block_uid_enabled', document.getElementById('block_uid_enabled').checked ? '1' : '0');
+  b.append('block_uid_duration_sec', document.getElementById('block_uid_duration_sec').value);
+  try {{
+    const r = await fetch('/save_uid_block', {{method:'POST', headers:{{'Content-Type':'application/x-www-form-urlencoded'}}, body:b.toString()}});
+    if (r.ok) showToast('🛡️ UID Block Config Saved', '#10B981');
+    else showToast('❌ Failed', '#EF4444');
+  }} catch(e) {{ showToast('❌ Error', '#EF4444'); }}
+  btn.disabled = false;
+}}
+async function clearBlocked(){{
+  if (!confirm('🗑️ Clear ALL blocked UIDs?')) return;
+  try {{
+    const r = await fetch('/clear_blocked', {{method:'POST'}});
+    if (r.ok) {{ showToast('🗑️ Blocked UIDs cleared', '#F59E0B'); fetchBlockedCount(); }}
+  }} catch(e) {{}}
+}}
+async function fetchBlockedCount(){{
+  try {{
+    const r = await fetch('/api/blocked_count');
+    if (!r.ok) return;
+    const d = await r.json();
+    const el = document.getElementById('blocked_count_display');
+    if (el) el.value = `${{d.count}} UID(s) blocked`;
+  }} catch(e) {{}}
+}}
+
 async function fetchStats(){{try{{const r=await fetch('/api/stats');if(!r.ok)return;const d=await r.json();document.getElementById('s-online').innerText=d.online;document.getElementById('s-total').innerText=d.total;const tb=document.getElementById('tb');if(d.accounts&&d.accounts.length){{tb.innerHTML=d.accounts.map(a=>`<tr><td style="color:#94A3B8;">${{a.bot_uid}}</td><td style="color:#94A3B8;">${{a.uid}}</td><td style="color:#22D3EE;font-weight:700;">${{a.name}}</td><td style="color:#F59E0B;font-weight:700;">${{a.region}}</td><td style="color:#FCD34D;font-family:monospace;">${{a.last_target||'—'}}</td><td style="color:#64748B;">${{a.time}}</td><td><span class="badge">ONLINE</span></td></tr>`).join('');}}else{{tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:#64748B;">No active bots</td></tr>';}}}}catch(e){{}}}}
 async function fetchLogs(){{try{{const r=await fetch('/api/logs');if(!r.ok)return;const d=await r.json();const el=document.getElementById('log');const logs=d.logs||[];if(!logs.length){{el.innerHTML='📡 Waiting...';return;}}const atBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-30;el.innerHTML=logs.map(l=>`<div>${{l.replace(/&/g,'&amp;').replace(/</g,'&lt;')}}</div>`).join('');if(atBottom)el.scrollTop=el.scrollHeight;}}catch(e){{}}}}
 fetchStats();setInterval(fetchStats,2000);
 fetchLogs();setInterval(fetchLogs,2500);
 refreshStatus();setInterval(refreshStatus,3000);
+fetchBlockedCount();setInterval(fetchBlockedCount,3000);
 </script></body></html>"""
             self.wfile.write(html.encode('utf-8')); return
 
@@ -1694,6 +1800,16 @@ refreshStatus();setInterval(refreshStatus,3000);
 
         if self.path == '/api/status':
             self._json_response({'stopped': is_stopped(), 'online': online_count, 'total': total_accounts}); return
+
+        if self.path == '/api/blocked_count':
+            with web_config_lock:
+                enabled = web_config.get('block_uid_enabled', True)
+                duration = web_config.get('block_uid_duration_sec', 30)
+            self._json_response({
+                'count': get_blocked_count(),
+                'enabled': enabled,
+                'duration': duration,
+            }); return
 
         self.send_response(404); self.end_headers()
 
@@ -1745,6 +1861,26 @@ refreshStatus();setInterval(refreshStatus,3000);
                 console.print("[green]⚙️ Join Config Updated[/green]")
                 self._text_response('OK')
             except Exception as e: self._text_response(f'Err: {e}', 400)
+            return
+
+        if self.path == '/save_uid_block':
+            try:
+                with web_config_lock:
+                    web_config['block_uid_enabled'] = params.get('block_uid_enabled', ['1'])[0] == '1'
+                    dur = int(params.get('block_uid_duration_sec', ['30'])[0] or 0)
+                    web_config['block_uid_duration_sec'] = max(0, min(3600, dur))
+                save_web_config()
+                onoff = 'ON' if web_config['block_uid_enabled'] else 'OFF'
+                console.print(f"[green]🛡️ UID Block: {onoff} | Duration: {web_config['block_uid_duration_sec']}s[/green]")
+                self._text_response('OK')
+            except Exception as e:
+                self._text_response(f'Err: {e}', 400)
+            return
+
+        if self.path == '/clear_blocked':
+            n = clear_blocked_uids()
+            console.print(f"[yellow]🗑️ Cleared {n} blocked UID(s)[/yellow]")
+            self._text_response(f'OK:{n}')
             return
 
         if self.path == '/save_welcome':
@@ -1806,6 +1942,9 @@ async def main_async():
     threading.Thread(target=start_web_server, daemon=True).start()
     await asyncio.sleep(1)
     asyncio.create_task(batch_account_loader())
+    blk_state = 'ON' if web_config['block_uid_enabled'] else 'OFF'
+    blk_dur = web_config['block_uid_duration_sec']
+    blk_disp = f"{blk_dur}s" if blk_dur > 0 else "permanent"
     console.print(Panel(
         "[bold green]✅ Squad JOIN System Active[/bold green]\n"
         "[cyan]🌐 http://localhost:8080[/cyan]\n"
@@ -1813,6 +1952,7 @@ async def main_async():
         "[magenta]🎯 Flow: Scan → Join → Bundle → Welcome → Emote → Exit → Ghost[/magenta]\n"
         f"[yellow]⚡ Skip Level ≤ {web_config['skip_level_max']}[/yellow]\n"
         f"[blue]👥 Max Bots per Group: {web_config['max_bots_per_group']}[/blue]\n"
+        f"[green]🛡️ UID Block: {blk_state} | {blk_disp}[/green]\n"
         "[bold cyan]👻 Ghost (web editable)[/bold cyan]",
         title="[bold red]🔥 MAHIR JOIN BOT 🔥[/bold red]",
         border_style="bright_red", expand=False))
